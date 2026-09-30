@@ -1,0 +1,734 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Temporizador de tareas</title>
+<style>
+:root{
+  --bg:#f6f5f2; --card:#ffffff; --text:#1d1d1f; --muted:#6b6b70; --line:#e4e2dd;
+  --accent:#2f6fde; --accent-text:#fff; --danger:#c8372d; --ok:#1f8a4c; --soft:#eef2fb;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#141416; --card:#1e1e22; --text:#ececef; --muted:#9a9aa3; --line:#2e2e34;
+    --accent:#5b8ff0; --accent-text:#0d0d10; --danger:#ef6a60; --ok:#4cc27d; --soft:#232a3a; }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line)}
+.wrap{max-width:900px;margin:0 auto;padding:0 16px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0 4px}
+.top h1{font-size:17px;margin:0}
+.live{font-variant-numeric:tabular-nums;color:var(--ok);font-weight:600;font-size:14px}
+nav{display:flex;gap:4px;overflow-x:auto;padding-bottom:8px}
+nav button{background:none;border:0;padding:8px 12px;border-radius:8px;color:var(--muted);font:inherit;cursor:pointer;white-space:nowrap}
+nav button.on{background:var(--soft);color:var(--text);font-weight:600}
+main{padding:16px 0 60px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
+h2{font-size:16px;margin:0 0 12px}
+h3{font-size:14px;margin:16px 0 8px;color:var(--muted);font-weight:600}
+label{display:block;font-size:13px;color:var(--muted);margin-bottom:4px}
+input,select,textarea{width:100%;font:inherit;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.btn{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:8px;padding:8px 14px;cursor:pointer}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-text);font-weight:600}
+.btn.danger{color:var(--danger)}
+.btn.small{padding:4px 10px;font-size:13px}
+.btn.big{font-size:18px;padding:14px 28px;border-radius:12px}
+.btn.stop{background:var(--danger);border-color:var(--danger);color:#fff}
+.clock{font-size:48px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:1px;margin:8px 0}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.entry{display:grid;grid-template-columns:110px 1fr auto auto;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.entry:first-of-type{border-top:0}
+.dur{font-variant-numeric:tabular-nums;font-weight:600}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.day{display:flex;justify-content:space-between;margin:16px 0 4px;font-weight:600}
+table{width:100%;border-collapse:collapse}
+td,th{text-align:left;padding:6px 4px;border-top:1px solid var(--line);font-variant-numeric:tabular-nums}
+th{color:var(--muted);font-weight:600;font-size:13px;border-top:0}
+td.r,th.r{text-align:right}
+tr.l1 td{font-weight:600}
+tr.l2 td:first-child{padding-left:20px}
+tr.l3 td:first-child{padding-left:40px;color:var(--muted)}
+.tree li{margin:4px 0}
+.tree ul{list-style:none;padding-left:18px;margin:4px 0}
+.tree>ul{padding-left:0}
+.item{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.item .name{flex:1;min-width:120px}
+.archived{opacity:.5}
+.empty{padding:24px;text-align:center;color:var(--muted)}
+dialog{border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--text);padding:20px;width:min(480px,calc(100vw - 32px))}
+dialog::backdrop{background:rgba(0,0,0,.4)}
+.toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:10px 16px;border-radius:8px;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+@media (max-width:560px){
+  .entry{grid-template-columns:1fr auto;}
+  .entry .when{grid-column:1/-1}
+  .clock{font-size:40px}
+}
+
+.gate{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:16px}
+.gate[hidden]{display:none}
+.gatebox{max-width:420px;width:100%;text-align:center}
+.gatebox h1{font-size:22px;margin:0 0 12px}
+.gatebox .btn{margin-top:16px}
+.gatebox code{background:var(--soft);padding:1px 5px;border-radius:4px}
+.userbox{display:flex;align-items:center;gap:8px;margin-left:auto}
+.top{flex-wrap:wrap}
+@media (max-width:560px){ #userEmail{display:none} }
+</style>
+</head>
+<body>
+<!-- Pantalla de acceso / configuración -->
+<div class="gate" id="gate">
+  <div class="card gatebox">
+    <h1>⏱ Temporizador</h1>
+    <div id="gateMsg" class="muted">Cargando…</div>
+    <button class="btn primary big" id="loginBtn" hidden>Entrar con Google</button>
+  </div>
+</div>
+
+<header>
+  <div class="wrap">
+    <div class="top"><h1>⏱ Temporizador</h1><span class="live" id="headLive"></span>
+      <span class="small muted userbox"><span id="syncState"></span> <span id="userEmail"></span> <button class="btn small" id="logoutBtn">Salir</button></span></div>
+    <nav id="tabs">
+      <button data-tab="timer" class="on">Temporizador</button>
+      <button data-tab="entries">Registros</button>
+      <button data-tab="reports">Informes</button>
+      <button data-tab="clients">Clientes</button>
+      <button data-tab="data">Datos</button>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <!-- TEMPORIZADOR -->
+  <section data-view="timer">
+    <div class="card">
+      <div class="grid">
+        <div><label>Cliente</label><select id="tClient"></select></div>
+        <div><label>Proyecto</label><select id="tProject"></select></div>
+        <div><label>Tarea</label><select id="tTask"></select></div>
+      </div>
+      <div style="margin-top:12px"><label>Nota (opcional)</label><input id="tNote" placeholder="¿En qué estás trabajando?"></div>
+      <div class="clock" id="clock">0:00:00</div>
+      <div class="row">
+        <button class="btn primary big" id="startStop">▶ Iniciar</button>
+        <span class="muted small" id="runInfo"></span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="row" style="justify-content:space-between"><h2 style="margin:0">Hoy</h2><span class="dur" id="todayTotal"></span></div>
+      <div id="todayList"></div>
+    </div>
+  </section>
+
+  <!-- REGISTROS -->
+  <section data-view="entries" hidden>
+    <div class="card">
+      <div class="grid">
+        <div><label>Periodo</label><select id="eRange"></select></div>
+        <div><label>Cliente</label><select id="eClient"></select></div>
+        <div id="eCustom" hidden class="grid" style="grid-column:1/-1">
+          <div><label>Desde</label><input type="date" id="eFrom"></div>
+          <div><label>Hasta</label><input type="date" id="eTo"></div>
+        </div>
+      </div>
+      <div class="row" style="margin-top:12px;justify-content:space-between">
+        <span class="muted">Total: <b class="dur" id="eTotal"></b></span>
+        <button class="btn primary" id="addEntry">+ Añadir registro manual</button>
+      </div>
+    </div>
+    <div class="card" id="eList"></div>
+  </section>
+
+  <!-- INFORMES -->
+  <section data-view="reports" hidden>
+    <div class="card">
+      <div class="grid">
+        <div><label>Periodo</label><select id="rRange"></select></div>
+        <div><label>Cliente</label><select id="rClient"></select></div>
+        <div id="rCustom" hidden class="grid" style="grid-column:1/-1">
+          <div><label>Desde</label><input type="date" id="rFrom"></div>
+          <div><label>Hasta</label><input type="date" id="rTo"></div>
+        </div>
+      </div>
+      <div class="row" style="margin-top:12px"><button class="btn" id="rCsv">⬇ Exportar CSV de este periodo</button></div>
+    </div>
+    <div class="card" id="rTable"></div>
+  </section>
+
+  <!-- CLIENTES -->
+  <section data-view="clients" hidden>
+    <div class="card">
+      <h2>Nuevo cliente</h2>
+      <div class="grid">
+        <div><label>Nombre</label><input id="cName" placeholder="Ej. Acme S.L."></div>
+        <div><label>Tarifa €/hora (opcional)</label><input id="cRate" type="number" min="0" step="0.5" placeholder="0"></div>
+        <div><label>Color</label><input id="cColor" type="color" value="#2f6fde" style="height:40px;padding:2px"></div>
+      </div>
+      <div class="row" style="margin-top:12px"><button class="btn primary" id="cAdd">Añadir cliente</button>
+        <label class="row small" style="margin:0 0 0 auto;gap:6px"><input type="checkbox" id="showArchived" style="width:auto"> Mostrar archivados</label></div>
+    </div>
+    <div class="card tree" id="cTree"></div>
+  </section>
+
+  <!-- DATOS -->
+  <section data-view="data" hidden>
+    <div class="card">
+      <h2>Dónde están tus datos</h2>
+      <p class="small">Se guardan en tu base de datos de Firebase (en la nube de Google), vinculados a tu cuenta. Entres desde el dispositivo que entres, verás los mismos datos, sincronizados al momento. Si te quedas sin conexión, la app sigue funcionando y sube los cambios cuando vuelve.</p>
+    </div>
+    <div class="card">
+      <h2>Copia de seguridad extra</h2>
+      <p class="muted small">Es opcional, pero recomendable de vez en cuando: un archivo con todo, por si acaso.</p>
+      <p>Última copia: <b id="lastBackup"></b></p>
+      <div class="row">
+        <button class="btn primary" id="expJson">⬇ Exportar copia (JSON)</button>
+        <button class="btn" id="impJson">⬆ Importar copia</button>
+        <button class="btn" id="expCsv">⬇ Exportar todo a CSV</button>
+        <input type="file" id="impFile" accept=".json,application/json" hidden>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Información</h2>
+      <p class="small muted" id="info"></p>
+      <button class="btn danger small" id="wipe">Borrar todos los datos</button>
+    </div>
+  </section>
+</main>
+
+<!-- Modal de registro -->
+<dialog id="dlg">
+  <form method="dialog" id="dlgForm">
+    <h2 id="dlgTitle">Registro</h2>
+    <div class="grid">
+      <div><label>Cliente</label><select id="dClient" required></select></div>
+      <div><label>Proyecto</label><select id="dProject"></select></div>
+      <div><label>Tarea</label><select id="dTask"></select></div>
+    </div>
+    <div class="grid" style="margin-top:12px">
+      <div><label>Fecha</label><input type="date" id="dDate" required></div>
+      <div><label>Inicio</label><input type="time" id="dStart" required></div>
+      <div><label>Fin</label><input type="time" id="dEnd" required></div>
+    </div>
+    <div style="margin-top:12px"><label>Nota</label><input id="dNote"></div>
+    <p class="small muted">Si la hora de fin es anterior a la de inicio, se entiende que acaba al día siguiente.</p>
+    <div class="row" style="justify-content:flex-end;margin-top:12px">
+      <button class="btn" value="cancel" formnovalidate>Cancelar</button>
+      <button class="btn primary" value="ok" id="dSave">Guardar</button>
+    </div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+/* =========================================================
+   Temporizador de tareas — datos en Firebase (Firestore).
+   Estructura en la base de datos:
+     users/{uid}                 → clientes, proyectos, tareas, temporizador en marcha…
+     users/{uid}/entries/{id}    → un documento por cada registro de tiempo
+   Ver README.md.
+   ========================================================= */
+import { firebaseConfig } from './firebase-config.js';
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js';
+import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signInWithRedirect, signOut, connectAuthEmulator, signInWithCredential }
+  from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js';
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, collection, onSnapshot, setDoc, deleteDoc, writeBatch, getDocs, query, where, limit, connectFirestoreEmulator }
+  from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
+
+const APP_VERSION = '0.3.0';
+const HISTORY_MONTHS = 3;     // meses que se cargan (y sincronizan en tiempo real) al abrir la app
+const SCHEMA = 1;              // súbelo cuando cambie la estructura de datos y añade una migración
+const LEGACY_KEY = 'temporizador.data'; // datos de la v0.1 (guardados en el navegador)
+
+/* ---------- Utilidades ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad = n => String(n).padStart(2,'0');
+function fmtClock(ms){ const s=Math.max(0,Math.floor(ms/1000)); return `${Math.floor(s/3600)}:${pad(Math.floor(s/60)%60)}:${pad(s%60)}`; }
+function fmtDur(ms){ const m=Math.round(ms/60000); return `${Math.floor(m/60)}h ${pad(m%60)}m`; }
+const fmtHours = ms => (ms/3600000).toFixed(2).replace('.', ',');
+const fmtMoney = n => n.toLocaleString('es-ES',{style:'currency',currency:'EUR'});
+const fmtTime = t => new Date(t).toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
+const fmtDay = t => new Date(t).toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+const dateStr = t => { const d=new Date(t); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; };
+const timeStr = t => { const d=new Date(t); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+const startOfDay = t => { const d=new Date(t); d.setHours(0,0,0,0); return d.getTime(); };
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36)+Math.random().toString(36).slice(2));
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('show'),2500); }
+function download(name, text, type){
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type})); a.download=name; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+}
+function showGate(msg, withLogin){
+  $('#gate').hidden=false; $('#gateMsg').innerHTML=msg; $('#loginBtn').hidden=!withLogin;
+}
+
+/* ---------- Datos en memoria ---------- */
+const META_FIELDS = ['schema','clients','projects','tasks','running','lastSel','lastBackup'];
+function emptyDb(){ return { schema:SCHEMA, clients:[], projects:[], tasks:[], entries:[], running:null, lastSel:null, lastBackup:null }; }
+// Cada vez que cambie la estructura, añade aquí un paso: if (d.schema < 2) { ...; d.schema = 2; }
+function migrate(d){
+  d = Object.assign(emptyDb(), d);
+  if (!d.schema) d.schema = 1;
+  return d;
+}
+let db = emptyDb();
+const byId = (list, id) => list.find(x => x.id === id);
+const client = id => byId(db.clients, id);
+const project = id => byId(db.projects, id);
+const task = id => byId(db.tasks, id);
+const labelOf = e => [client(e.clientId)?.name ?? '(cliente eliminado)', project(e.projectId)?.name, task(e.taskId)?.name].filter(Boolean).join(' › ');
+
+/* ---------- Firebase ---------- */
+const configured = firebaseConfig && firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith('PEGA');
+let auth, fs, user=null, metaRef=null, entriesRef=null, unsubs=[];
+const pending = { meta:false, entries:false };
+
+function metaOnly(){ const m={}; META_FIELDS.forEach(k=>m[k]=db[k] ?? null); return m; }
+function fail(e){ console.error(e); toast('⚠ Error al guardar: '+(e.code||e.message)); }
+// Guardar la parte "meta" (clientes, proyectos, tareas, temporizador…)
+function save(){ if (metaRef) setDoc(metaRef, metaOnly()).catch(fail); }
+// Guardar / borrar un registro de tiempo
+function putEntry(e){ if (entriesRef) setDoc(doc(entriesRef, e.id), e).catch(fail); }
+function removeEntry(id){ if (entriesRef) deleteDoc(doc(entriesRef, id)).catch(fail); }
+/* Carga de registros por tramos (para gastar pocas lecturas de la base de datos):
+   - "recent": registros desde "cutoff" (inicio del mes de hace 3 meses), en tiempo real.
+   - "older":  historial anterior, que se descarga solo cuando se consulta. */
+let cutoff = 0, recent = [], olderFrom = 0, loadingOlder = null;
+const older = new Map();
+const calcCutoff = () => { const n=new Date(); return new Date(n.getFullYear(), n.getMonth()-HISTORY_MONTHS, 1).getTime(); };
+function resetEntries(){ cutoff = calcCutoff(); olderFrom = cutoff; recent = []; older.clear(); db.entries = []; }
+function rebuildEntries(){
+  const ids = new Set(recent.map(e=>e.id));
+  db.entries = [...recent, ...[...older.values()].filter(e => !ids.has(e.id) && e.start < cutoff)];
+}
+// Añadir o actualizar un registro en memoria (tras crearlo o editarlo)
+function keepLocal(e){
+  if (e.start < cutoff) older.set(e.id, e); else if (!recent.includes(e)) recent.push(e);
+  rebuildEntries();
+}
+// Asegura que el historial está descargado desde la fecha "from". Devuelve true si ya está todo.
+async function ensureLoaded(from){
+  if (!entriesRef || from >= olderFrom) return true;
+  while (loadingOlder) await loadingOlder.catch(()=>{});
+  if (from >= olderFrom) return true;
+  const to = olderFrom;
+  loadingOlder = getDocs(query(entriesRef, where('start','>=',from), where('start','<',to)))
+    .then(snap => { snap.docs.forEach(d => older.set(d.id, d.data())); olderFrom = from; });
+  try { await loadingOlder; } catch(e){ toast('⚠ No se pudo cargar el historial: '+(e.code||e.message)); return false; }
+  finally { loadingOlder = null; }
+  rebuildEntries(); renderAll(); return true;
+}
+const historyNote = () => `<div class="empty">⏳ Descargando historial…</div>`;
+
+// Reemplazar TODOS los datos (importar copia / borrar todo)
+async function replaceAll(d){
+  d = migrate(d);
+  const old = await getDocs(entriesRef);
+  const entries = d.entries.map(e => ({ note:'', projectId:null, taskId:null, ...e, id: e.id || uid() }));
+  const ops = [ ...old.docs.map(s => b => b.delete(s.ref)),
+                ...entries.map(e => b => b.set(doc(entriesRef, e.id), e)) ];
+  for (let i=0; i<ops.length; i+=400){ const b=writeBatch(fs); ops.slice(i,i+400).forEach(f=>f(b)); await b.commit(); }
+  db = { ...d, entries: [] };
+  older.clear(); olderFrom = cutoff; rebuildEntries();
+  await setDoc(metaRef, metaOnly());
+}
+function setSync(){
+  const busy = pending.meta || pending.entries;
+  $('#syncState').textContent = !navigator.onLine ? '⚠ sin conexión (se guarda y se sube luego)' : busy ? '⏳ guardando…' : '☁ sincronizado';
+}
+addEventListener('online', setSync); addEventListener('offline', setSync);
+
+function startListeners(){
+  metaRef = doc(fs, 'users', user.uid);
+  entriesRef = collection(metaRef, 'entries');
+  let first = true;
+  unsubs.push(onSnapshot(metaRef, { includeMetadataChanges:true }, async snap => {
+    pending.meta = snap.metadata.hasPendingWrites; setSync();
+    if (!snap.exists()){
+      if (!first || snap.metadata.fromCache) return; // esperamos respuesta del servidor antes de decidir que está vacío
+      first = false;
+      await firstRun(); return;
+    }
+    first = false;
+    const m = migrate(snap.data());
+    META_FIELDS.forEach(k => db[k] = m[k]);
+    const wasHidden = $('#gate').hidden;
+    $('#gate').hidden = true;
+    renderAll();
+    if (!wasHidden && !db.clients.length) document.querySelector('#tabs [data-tab="clients"]').click();
+  }, e => showGate('No se pudo leer la base de datos: <b>'+esc(e.code||e.message)+'</b><br>Revisa las reglas de Firestore (README, paso 4).', true)));
+  resetEntries();
+  unsubs.push(onSnapshot(query(entriesRef, where('start','>=',cutoff)), { includeMetadataChanges:true }, snap => {
+    pending.entries = snap.metadata.hasPendingWrites; setSync();
+    recent = snap.docs.map(s => s.data());
+    rebuildEntries(); renderAll();
+  }));
+}
+// Primera vez con esta cuenta: se crea la base de datos, y si hay datos de la v0.1 en este navegador, se ofrecen para subir
+async function firstRun(){
+  let legacy=null;
+  try { legacy = JSON.parse(localStorage.getItem(LEGACY_KEY)); } catch(e){}
+  if (legacy?.entries && (legacy.entries.length || legacy.clients?.length) &&
+      confirm(`He encontrado datos guardados en este navegador (versión anterior): ${legacy.clients.length} cliente(s) y ${legacy.entries.length} registro(s).\n\n¿Subirlos a tu base de datos en la nube?`)){
+    await replaceAll(legacy); toast('Datos subidos a la nube ☁');
+  } else {
+    db = emptyDb(); await setDoc(metaRef, metaOnly());
+  }
+}
+
+if (!configured){
+  showGate(`Falta conectar tu base de datos.<br><br>Edita <code>firebase-config.js</code> con los datos de tu proyecto Firebase (sigue los pasos del <b>README</b>).`, false);
+} else {
+  const app = initializeApp(firebaseConfig);
+  auth = getAuth(app); auth.languageCode = 'es';
+  fs = initializeFirestore(app, { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) });
+  if (new URLSearchParams(location.search).has('emulator')){   // solo para pruebas locales
+    connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings:true });
+    connectFirestoreEmulator(fs, '127.0.0.1', 8080);
+    window.__testLogin = (sub, email) => signInWithCredential(auth, GoogleAuthProvider.credential(JSON.stringify({ sub, email, email_verified:true })));
+  }
+  $('#loginBtn').onclick = async () => {
+    const p = new GoogleAuthProvider();
+    try { await signInWithPopup(auth, p); }
+    catch(e){
+      if (['auth/popup-blocked','auth/operation-not-supported-in-this-environment'].includes(e.code)) return signInWithRedirect(auth, p);
+      if (e.code !== 'auth/popup-closed-by-user') showGate('No se pudo entrar: <b>'+esc(e.code)+'</b><br>Si pone <i>unauthorized-domain</i>, revisa el paso 5 del README.', true);
+    }
+  };
+  $('#logoutBtn').onclick = () => signOut(auth);
+  onAuthStateChanged(auth, u => {
+    unsubs.forEach(f=>f()); unsubs=[]; db=emptyDb(); user=u;
+    if (!u){ metaRef=entriesRef=null; showGate('Entra con tu cuenta de Google para ver tus tiempos.', true); return; }
+    $('#userEmail').textContent = u.email || '';
+    showGate('Cargando tus datos…', false);
+    startListeners();
+  });
+}
+
+/* ---------- Periodos ---------- */
+const RANGES = [['today','Hoy'],['week','Esta semana'],['lastweek','Semana pasada'],['month','Este mes'],['lastmonth','Mes pasado'],['year','Este año'],['all','Todo'],['custom','Personalizado…']];
+function rangeBounds(kind, from, to){
+  const now=new Date(), d0=startOfDay(now), DAY=86400000;
+  const monday = d0 - ((now.getDay()+6)%7)*DAY;
+  switch(kind){
+    case 'today': return [d0, d0+DAY];
+    case 'week': return [monday, monday+7*DAY];
+    case 'lastweek': return [monday-7*DAY, monday];
+    case 'month': return [new Date(now.getFullYear(),now.getMonth(),1).getTime(), new Date(now.getFullYear(),now.getMonth()+1,1).getTime()];
+    case 'lastmonth': return [new Date(now.getFullYear(),now.getMonth()-1,1).getTime(), new Date(now.getFullYear(),now.getMonth(),1).getTime()];
+    case 'year': return [new Date(now.getFullYear(),0,1).getTime(), new Date(now.getFullYear()+1,0,1).getTime()];
+    case 'custom': return [from ? new Date(from+'T00:00').getTime() : 0, to ? new Date(to+'T00:00').getTime()+DAY : Infinity];
+    default: return [0, Infinity];
+  }
+}
+// Devuelve null si el periodo necesita historial que aún se está descargando
+function filterEntries(kind, from, to, clientId){
+  const [a,b]=rangeBounds(kind, from, to);
+  if (a < olderFrom && entriesRef){ ensureLoaded(a); return null; }
+  return db.entries.filter(e => e.start>=a && e.start<b && (!clientId || e.clientId===clientId)).sort((x,y)=>y.start-x.start);
+}
+
+/* ---------- Selects ---------- */
+function fillSelect(sel, items, placeholder, value){
+  sel.innerHTML = `<option value="">${esc(placeholder)}</option>` + items.map(i=>`<option value="${i.id}">${esc(i.name)}</option>`).join('');
+  if (value && items.some(i=>i.id===value)) sel.value=value;
+}
+const byName = (a,b)=>a.name.localeCompare(b.name);
+const activeClients = keep => db.clients.filter(c=>!c.archived || c.id===keep).sort(byName);
+const projectsOf = (cid, keep) => db.projects.filter(p=>p.clientId===cid && (!p.archived || p.id===keep)).sort(byName);
+const tasksOf = (pid, keep) => db.tasks.filter(t=>t.projectId===pid && (!t.archived || t.id===keep)).sort(byName);
+// Encadena tres selects Cliente → Proyecto → Tarea
+function chain(cSel, pSel, tSel, vals={}){
+  fillSelect(cSel, activeClients(vals.clientId), db.clients.length ? 'Elige cliente…' : 'Primero crea un cliente', vals.clientId);
+  const upT = tv => fillSelect(tSel, tasksOf(pSel.value, tv), '— sin tarea —', tv);
+  const upP = (pv, tv) => { fillSelect(pSel, projectsOf(cSel.value, pv), '— sin proyecto —', pv); upT(tv); };
+  cSel.onchange = () => { upP(); onTimerFieldChange(cSel); };
+  pSel.onchange = () => { upT(); onTimerFieldChange(pSel); };
+  tSel.onchange = () => onTimerFieldChange(tSel);
+  upP(vals.projectId, vals.taskId);
+}
+
+/* ---------- Temporizador ---------- */
+const timerSel = () => ({ clientId:$('#tClient').value||null, projectId:$('#tProject').value||null, taskId:$('#tTask').value||null });
+function renderTimer(){
+  const r = db.running;
+  // Si no está en marcha, respetamos lo que tengas seleccionado ahora mismo
+  const cur = timerSel();
+  chain($('#tClient'), $('#tProject'), $('#tTask'), r || (cur.clientId ? cur : db.lastSel) || {});
+  if (r && document.activeElement !== $('#tNote')) $('#tNote').value = r.note ?? '';
+  const b=$('#startStop');
+  b.textContent = r ? '■ Parar' : '▶ Iniciar';
+  b.classList.toggle('stop', !!r); b.classList.toggle('primary', !r);
+  $('#runInfo').textContent = r ? `En marcha desde las ${fmtTime(r.start)}` : '';
+  tick();
+  const list = filterEntries('today');
+  const total = list.reduce((s,e)=>s+(e.end-e.start),0) + (r ? Date.now()-r.start : 0);
+  $('#todayTotal').textContent = fmtDur(total);
+  $('#todayList').innerHTML = list.length ? list.map(e=>entryRow(e,true)).join('') : '<div class="empty">Aún no hay registros hoy.</div>';
+}
+function tick(){
+  const r=db.running, ms = r ? Date.now()-r.start : 0;
+  $('#clock').textContent = fmtClock(ms);
+  $('#headLive').textContent = r ? `● ${fmtClock(ms)} · ${client(r.clientId)?.name ?? ''}` : '';
+  document.title = r ? `${fmtClock(ms)} · Temporizador` : 'Temporizador de tareas';
+}
+setInterval(tick, 1000);
+
+function startTimer(vals){
+  if (!vals.clientId){ toast('Elige un cliente primero'); return; }
+  if (db.running) stopTimer(true);
+  db.running = { clientId:vals.clientId, projectId:vals.projectId||null, taskId:vals.taskId||null, note:vals.note||'', start: Date.now() };
+  db.lastSel = { clientId: vals.clientId, projectId: vals.projectId||null, taskId: vals.taskId||null };
+  save(); renderAll(); toast('▶ Temporizador iniciado');
+}
+function stopTimer(silent){
+  const r=db.running; if(!r) return;
+  const end=Date.now();
+  if (end - r.start >= 1000){
+    const e={ id: uid(), clientId:r.clientId, projectId:r.projectId||null, taskId:r.taskId||null, note:r.note||'', start:r.start, end };
+    keepLocal(e); putEntry(e);
+  }
+  db.running=null; save();
+  if(!silent){ renderAll(); toast('■ Tiempo guardado'); }
+}
+$('#startStop').onclick = () => {
+  if (db.running) return stopTimer();
+  startTimer({ ...timerSel(), note:$('#tNote').value.trim() });
+};
+// Si cambias cliente/proyecto/tarea/nota con el temporizador en marcha, se actualiza el registro en curso
+function onTimerFieldChange(sel){
+  if (!db.running || !['tClient','tProject','tTask','tNote'].includes(sel.id)) return;
+  const s = timerSel(); if (!s.clientId) return;
+  Object.assign(db.running, s, { note:$('#tNote').value.trim() });
+  save(); tick();
+}
+$('#tNote').addEventListener('change', e => onTimerFieldChange(e.target));
+
+/* ---------- Registros ---------- */
+function entryRow(e, withContinue){
+  const c=client(e.clientId);
+  return `<div class="entry">
+    <div class="when small muted">${fmtTime(e.start)}–${fmtTime(e.end)}</div>
+    <div><span class="dot" style="background:${esc(c?.color||'#999')}"></span>${esc(labelOf(e))}${e.note?`<div class="small muted">${esc(e.note)}</div>`:''}</div>
+    <div class="dur">${fmtDur(e.end-e.start)}</div>
+    <div class="row" style="gap:4px">
+      ${withContinue?`<button class="btn small" data-act="cont" data-id="${e.id}" title="Continuar con esta tarea">▶</button>`:''}
+      <button class="btn small" data-act="edit" data-id="${e.id}" title="Editar">✎</button>
+      <button class="btn small danger" data-act="del" data-id="${e.id}" title="Borrar">✕</button>
+    </div></div>`;
+}
+document.addEventListener('click', ev => {
+  const b=ev.target.closest('[data-act]'); if(!b) return;
+  const e=byId(db.entries, b.dataset.id); if(!e) return;
+  if (b.dataset.act==='edit') openEntry(e);
+  if (b.dataset.act==='cont') startTimer({clientId:e.clientId, projectId:e.projectId, taskId:e.taskId, note:e.note});
+  if (b.dataset.act==='del' && confirm(`¿Borrar este registro (${fmtDur(e.end-e.start)})?`)){
+    recent = recent.filter(x=>x.id!==e.id); older.delete(e.id); rebuildEntries();
+    removeEntry(e.id); renderAll(); toast('Registro borrado');
+  }
+});
+function setupRange(prefix){
+  const sel=$(`#${prefix}Range`);
+  sel.innerHTML = RANGES.map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
+  sel.value = prefix==='e' ? 'week' : 'month';
+  sel.onchange = () => { $(`#${prefix}Custom`).hidden = sel.value!=='custom'; renderAll(); };
+  [`#${prefix}Client`,`#${prefix}From`,`#${prefix}To`].forEach(s=>$(s).onchange=renderAll);
+}
+function renderEntries(){
+  const cSel=$('#eClient'); fillSelect(cSel, [...db.clients].sort(byName), 'Todos', cSel.value);
+  const list = filterEntries($('#eRange').value, $('#eFrom').value, $('#eTo').value, cSel.value);
+  if (!list){ $('#eTotal').textContent='…'; $('#eList').innerHTML=historyNote(); return; }
+  $('#eTotal').textContent = fmtDur(list.reduce((s,e)=>s+(e.end-e.start),0));
+  if (!list.length){ $('#eList').innerHTML='<div class="empty">No hay registros en este periodo.</div>'; return; }
+  const days = {};
+  list.forEach(e => (days[startOfDay(e.start)] ??= []).push(e));
+  $('#eList').innerHTML = Object.keys(days).sort((a,b)=>b-a).map(d => {
+    const items=days[d], tot=items.reduce((s,e)=>s+(e.end-e.start),0);
+    return `<div class="day"><span style="text-transform:capitalize">${fmtDay(+d)}</span><span class="dur">${fmtDur(tot)}</span></div>` + items.map(e=>entryRow(e)).join('');
+  }).join('');
+}
+
+/* ---------- Modal añadir/editar ---------- */
+let editing=null;
+function openEntry(e){
+  editing = e || null;
+  const now=Date.now();
+  const v = e || { ...(db.lastSel||{}), start: now-3600000, end: now, note:'' };
+  $('#dlgTitle').textContent = e ? 'Editar registro' : 'Nuevo registro';
+  chain($('#dClient'), $('#dProject'), $('#dTask'), v);
+  $('#dDate').value=dateStr(v.start); $('#dStart').value=timeStr(v.start); $('#dEnd').value=timeStr(v.end);
+  $('#dNote').value=v.note||'';
+  $('#dlg').showModal();
+}
+$('#addEntry').onclick = () => openEntry();
+$('#dlgForm').addEventListener('submit', ev => {
+  if (ev.submitter?.value !== 'ok') return;
+  const cid=$('#dClient').value;
+  if (!cid){ ev.preventDefault(); toast('Elige un cliente'); return; }
+  const start=new Date(`${$('#dDate').value}T${$('#dStart').value}`).getTime();
+  let end=new Date(`${$('#dDate').value}T${$('#dEnd').value}`).getTime();
+  if (isNaN(start)||isNaN(end)){ ev.preventDefault(); toast('Fecha u hora no válida'); return; }
+  if (end<=start) end+=86400000;
+  const data={ clientId:cid, projectId:$('#dProject').value||null, taskId:$('#dTask').value||null, note:$('#dNote').value.trim(), start, end };
+  let e;
+  if (editing){ e=Object.assign(editing, data); } else { e={ id:uid(), ...data }; }
+  keepLocal(e); putEntry(e); renderAll(); toast(editing?'Registro actualizado':'Registro añadido');
+});
+
+/* ---------- Informes ---------- */
+function renderReports(){
+  const cSel=$('#rClient'); fillSelect(cSel, [...db.clients].sort(byName), 'Todos', cSel.value);
+  const list = filterEntries($('#rRange').value, $('#rFrom').value, $('#rTo').value, cSel.value);
+  if (!list){ $('#rTable').innerHTML=historyNote(); return; }
+  if (!list.length){ $('#rTable').innerHTML='<div class="empty">No hay registros en este periodo.</div>'; return; }
+  const tree={};
+  list.forEach(e=>{
+    const ms=e.end-e.start;
+    const c=(tree[e.clientId] ??= {ms:0, p:{}}); c.ms+=ms;
+    const p=(c.p[e.projectId||''] ??= {ms:0, t:{}}); p.ms+=ms;
+    p.t[e.taskId||''] = (p.t[e.taskId||'']||0)+ms;
+  });
+  let totMs=0, totEur=0, html='';
+  Object.entries(tree).sort((a,b)=>b[1].ms-a[1].ms).forEach(([cid,c])=>{
+    const cl=client(cid), rate=+cl?.rate||0, eur=rate*c.ms/3600000;
+    totMs+=c.ms; totEur+=eur;
+    html+=`<tr class="l1"><td><span class="dot" style="background:${esc(cl?.color||'#999')}"></span>${esc(cl?.name??'(eliminado)')}</td><td class="r">${fmtDur(c.ms)}</td><td class="r">${fmtHours(c.ms)}</td><td class="r">${rate?fmtMoney(eur):'—'}</td></tr>`;
+    Object.entries(c.p).sort((a,b)=>b[1].ms-a[1].ms).forEach(([pid,p])=>{
+      html+=`<tr class="l2"><td>${esc(project(pid)?.name??'Sin proyecto')}</td><td class="r">${fmtDur(p.ms)}</td><td class="r">${fmtHours(p.ms)}</td><td class="r">${rate?fmtMoney(rate*p.ms/3600000):''}</td></tr>`;
+      const tks=Object.entries(p.t);
+      if (tks.length===1 && !tks[0][0]) return;
+      tks.sort((a,b)=>b[1]-a[1]).forEach(([tid,ms])=>{
+        html+=`<tr class="l3"><td>${esc(task(tid)?.name??'Sin tarea')}</td><td class="r">${fmtDur(ms)}</td><td class="r">${fmtHours(ms)}</td><td></td></tr>`;
+      });
+    });
+  });
+  $('#rTable').innerHTML = `<table><thead><tr><th>Cliente › Proyecto › Tarea</th><th class="r">Tiempo</th><th class="r">Horas</th><th class="r">Importe</th></tr></thead>
+    <tbody>${html}</tbody><tfoot><tr class="l1"><td><b>Total</b></td><td class="r"><b>${fmtDur(totMs)}</b></td><td class="r"><b>${fmtHours(totMs)}</b></td><td class="r"><b>${totEur?fmtMoney(totEur):'—'}</b></td></tr></tfoot></table>`;
+}
+function toCsv(list){
+  const q = v => `"${String(v??'').replace(/"/g,'""')}"`;
+  const rows=[['Fecha','Inicio','Fin','Horas','Cliente','Proyecto','Tarea','Nota','Tarifa €/h','Importe €']];
+  list.slice().sort((a,b)=>a.start-b.start).forEach(e=>{
+    const c=client(e.clientId), h=(e.end-e.start)/3600000, rate=+c?.rate||0;
+    rows.push([dateStr(e.start), timeStr(e.start), timeStr(e.end), h.toFixed(2).replace('.',','), c?.name, project(e.projectId)?.name, task(e.taskId)?.name, e.note, rate?String(rate).replace('.',','):'', rate?(rate*h).toFixed(2).replace('.',','):'']);
+  });
+  return '﻿' + rows.map(r=>r.map(q).join(';')).join('\r\n'); // ; y BOM para que Excel en español lo abra bien
+}
+$('#rCsv').onclick = async () => {
+  const args=[$('#rRange').value,$('#rFrom').value,$('#rTo').value,$('#rClient').value];
+  if (!await ensureLoaded(rangeBounds(...args)[0])) return;
+  download(`tiempos_${dateStr(Date.now())}.csv`, toCsv(filterEntries(...args)), 'text/csv');
+};
+
+/* ---------- Clientes / proyectos / tareas ---------- */
+$('#cAdd').onclick = () => {
+  const name=$('#cName').value.trim(); if(!name) return toast('Escribe un nombre');
+  db.clients.push({ id:uid(), name, rate: parseFloat($('#cRate').value)||0, color:$('#cColor').value, archived:false });
+  $('#cName').value=''; $('#cRate').value=''; save(); renderAll(); toast('Cliente añadido');
+};
+$('#showArchived').onchange = () => renderClients();
+function itemControls(kind, x){
+  return `<button class="btn small" data-c="rename" data-k="${kind}" data-id="${x.id}">Renombrar</button>
+    <button class="btn small" data-c="archive" data-k="${kind}" data-id="${x.id}">${x.archived?'Recuperar':'Archivar'}</button>
+    <button class="btn small danger" data-c="delete" data-k="${kind}" data-id="${x.id}">Borrar</button>`;
+}
+function renderClients(){
+  const show=$('#showArchived').checked;
+  const vis = l => l.filter(x=>show||!x.archived).sort(byName);
+  if (!db.clients.length){ $('#cTree').innerHTML='<div class="empty">Aún no tienes clientes. Crea el primero arriba.</div>'; return; }
+  $('#cTree').innerHTML = '<ul>' + vis(db.clients).map(c=>`
+    <li class="${c.archived?'archived':''}">
+      <div class="item"><span class="name"><span class="dot" style="background:${esc(c.color)}"></span><b>${esc(c.name)}</b>
+        <span class="muted small">${c.rate?` · ${fmtMoney(+c.rate)}/h`:''}</span></span>
+        <button class="btn small" data-c="rate" data-k="clients" data-id="${c.id}">Tarifa</button>
+        <input type="color" value="${esc(c.color)}" data-color="${c.id}" style="width:36px;height:30px;padding:2px" title="Color">
+        ${itemControls('clients',c)}</div>
+      <ul>
+        ${vis(db.projects.filter(p=>p.clientId===c.id)).map(p=>`
+          <li class="${p.archived?'archived':''}"><div class="item"><span class="name">📁 ${esc(p.name)}</span>${itemControls('projects',p)}</div>
+            <ul>
+              ${vis(db.tasks.filter(t=>t.projectId===p.id)).map(t=>`<li class="${t.archived?'archived':''}"><div class="item"><span class="name">• ${esc(t.name)}</span>${itemControls('tasks',t)}</div></li>`).join('')}
+              <li><button class="btn small" data-c="addTask" data-id="${p.id}">+ tarea</button></li>
+            </ul></li>`).join('')}
+        <li><button class="btn small" data-c="addProject" data-id="${c.id}">+ proyecto</button></li>
+      </ul>
+    </li>`).join('') + '</ul>';
+}
+$('#cTree').addEventListener('change', ev => {
+  const id=ev.target.dataset.color; if(!id) return;
+  client(id).color=ev.target.value; save(); renderAll();
+});
+$('#cTree').addEventListener('click', async ev => {
+  const b=ev.target.closest('[data-c]'); if(!b) return;
+  const {c:cmd, k:kind, id}=b.dataset;
+  const x = kind ? byId(db[kind], id) : null;
+  if (cmd==='addProject'){ const n=prompt('Nombre del proyecto:'); if(!n?.trim()) return; db.projects.push({id:uid(), clientId:id, name:n.trim(), archived:false}); }
+  if (cmd==='addTask'){ const n=prompt('Nombre de la tarea:'); if(!n?.trim()) return; db.tasks.push({id:uid(), projectId:id, name:n.trim(), archived:false}); }
+  if (cmd==='rename'){ const n=prompt('Nuevo nombre:', x.name); if(!n?.trim()) return; x.name=n.trim(); }
+  if (cmd==='rate'){ const n=prompt('Tarifa €/hora (0 = sin tarifa):', x.rate||0); if(n===null) return; x.rate=parseFloat(String(n).replace(',','.'))||0; }
+  if (cmd==='archive') x.archived=!x.archived;
+  if (cmd==='delete'){
+    const field={clients:'clientId',projects:'projectId',tasks:'taskId'}[kind];
+    let used = db.running?.[field]===id || db.entries.some(e=>e[field]===id);
+    if (!used){
+      try { used = !(await getDocs(query(entriesRef, where(field,'==',id), limit(1)))).empty; }
+      catch(e){ alert('No se pudo comprobar si tiene registros (¿sin conexión?). Inténtalo más tarde.'); return; }
+    }
+    if (used){ alert(`No se puede borrar: tiene registros de tiempo.\nPuedes archivarlo para ocultarlo, o borrar antes esos registros.`); return; }
+    if (!confirm(`¿Borrar "${x.name}"${kind!=='tasks'?' y todo lo que contiene':''}?`)) return;
+    if (kind==='clients'){ const pids=db.projects.filter(p=>p.clientId===id).map(p=>p.id); db.tasks=db.tasks.filter(t=>!pids.includes(t.projectId)); db.projects=db.projects.filter(p=>p.clientId!==id); }
+    if (kind==='projects') db.tasks=db.tasks.filter(t=>t.projectId!==id);
+    db[kind]=db[kind].filter(y=>y.id!==id);
+  }
+  save(); renderAll();
+});
+
+/* ---------- Datos ---------- */
+$('#expJson').onclick = async () => {
+  if (!await ensureLoaded(0)) return;
+  db.lastBackup=Date.now(); save();
+  download(`temporizador_copia_${dateStr(Date.now())}.json`, JSON.stringify(db,null,2), 'application/json');
+  renderData();
+};
+$('#expCsv').onclick = async () => (await ensureLoaded(0)) && download(`tiempos_todo_${dateStr(Date.now())}.csv`, toCsv(db.entries), 'text/csv');
+$('#impJson').onclick = () => $('#impFile').click();
+$('#impFile').onchange = async ev => {
+  const f=ev.target.files[0]; ev.target.value=''; if(!f) return;
+  let d;
+  try{ d=JSON.parse(await f.text()); if (!Array.isArray(d.entries) || !Array.isArray(d.clients)) throw 0; }
+  catch(e){ alert('El archivo no es una copia válida del temporizador.'); return; }
+  if (!confirm(`Esta copia tiene ${d.clients.length} cliente(s) y ${d.entries.length} registro(s).\nSe REEMPLAZARÁN todos los datos actuales. ¿Continuar?`)) return;
+  try{ await replaceAll(d); toast('Copia importada'); } catch(e){ fail(e); }
+};
+$('#wipe').onclick = async () => {
+  if (prompt('Esto borra TODO de la base de datos. Escribe BORRAR para confirmar:')!=='BORRAR') return;
+  try{ await replaceAll(emptyDb()); toast('Datos borrados'); } catch(e){ fail(e); }
+};
+function renderData(){
+  $('#lastBackup').textContent = db.lastBackup ? new Date(db.lastBackup).toLocaleString('es-ES') : 'nunca';
+  $('#info').innerHTML = `Versión ${APP_VERSION} · esquema de datos ${db.schema}<br>${db.clients.length} clientes · ${db.projects.length} proyectos · ${db.tasks.length} tareas · ${db.entries.length} registros cargados<br>
+    Al abrir se cargan los registros desde el ${new Date(cutoff||calcCutoff()).toLocaleDateString('es-ES')}; lo anterior se descarga solo cuando lo consultas.`;
+}
+
+/* ---------- Navegación ---------- */
+$('#tabs').onclick = ev => {
+  const b=ev.target.closest('button'); if(!b) return;
+  document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('on', x===b));
+  document.querySelectorAll('[data-view]').forEach(v=>v.hidden = v.dataset.view!==b.dataset.tab);
+  try{ localStorage.setItem('temporizador.tab', b.dataset.tab); }catch(e){}
+};
+function renderAll(){ renderTimer(); renderEntries(); renderReports(); renderClients(); renderData(); }
+
+setupRange('e'); setupRange('r');
+try{ const t=localStorage.getItem('temporizador.tab'); if(t) document.querySelector(`#tabs [data-tab="${t}"]`)?.click(); }catch(e){}
+</script>
+</body>
+</html>
