@@ -3,11 +3,11 @@
 App para medir el tiempo dedicado a cada **cliente › proyecto › tarea**.
 Gratis: el código está en GitHub, la web en GitHub Pages y los datos en Firebase (Google).
 
-## Qué hace (v0.5.0)
+## Qué hace (v0.5.1)
 
 - Iniciar/parar el temporizador en tiempo real, **sincronizado entre dispositivos** (lo inicias en el móvil y lo paras en el PC).
 - Añadir, editar y borrar registros de tiempo a mano.
-- Clientes, proyectos y tareas: crear, renombrar, archivar y borrar.
+- Clientes, proyectos y tareas: crear, renombrar, archivar y borrar. También se pueden crear al vuelo desde los desplegables ("+ Nuevo…").
 - Precio €/h en cascada: **Tarea → Proyecto → Cliente**. Vacío = hereda; 0 = no facturable. Cada registro guarda su precio, y al cambiar una tarifa la app pregunta si aplicarla también a lo ya registrado.
 - Temporizador **sin asignar**: arráncalo sin elegir nada y complétalo después.
 - Aviso si ya hay un temporizador en marcha, y revisión de la hora de fin si lleva más de 10 h (temporizador olvidado).
@@ -95,6 +95,7 @@ Antes de un cambio grande, exporta una copia JSON (pestaña *Datos*) por si acas
 
 ## Historial de versiones
 
+- **0.5.1**: Grises más legibles y opción "+ Nuevo…" en los desplegables de cliente, proyecto y tarea.
 - **0.5.0**: Nuevo diseño minimalista (tipografía Poppins, menú inferior en el móvil, modo oscuro automático).
 - **0.4.0**: Precios por cliente/proyecto/tarea en cascada, temporizador sin asignar y aviso de temporizadores olvidados.
 - **0.3.0**: Carga los últimos 3 meses al abrir y el historial bajo demanda (ahorro de lecturas).

@@ -11,13 +11,13 @@
 <style>
 /* ===== Diseño "Blanco": minimalista, plano, un solo color de acento ===== */
 :root{
-  --bg:#ffffff; --text:#16161d; --muted:#9b9bab; --soft:#f5f5f8; --soft2:#ececf2; --line:#f0f0f4;
+  --bg:#ffffff; --text:#16161d; --muted:#686878; --soft:#f5f5f8; --soft2:#ececf2; --line:#f0f0f4;
   --accent:#5b5bf0; --accent-soft:#ededfd; --on-accent:#fff;
   --danger:#e5484d; --warn:#e8701a; --warn-soft:#fff1e6; --ok:#1fb58f;
   --radius:12px;
 }
 @media (prefers-color-scheme: dark){
-  :root{ --bg:#111114; --text:#ececf1; --muted:#7d7d8c; --soft:#1b1b21; --soft2:#24242c; --line:#222228;
+  :root{ --bg:#111114; --text:#ececf1; --muted:#a3a3b1; --soft:#1b1b21; --soft2:#24242c; --line:#222228;
     --accent:#7b7bff; --accent-soft:#23233c; --danger:#ff6b6b; --warn:#ff9a4a; --warn-soft:#3a2616; }
 }
 *{box-sizing:border-box}
@@ -69,7 +69,7 @@ input,select,textarea{width:100%;min-width:0;background:var(--soft);border:0;bor
 input:focus,select:focus{box-shadow:0 0 0 2px var(--accent)}
 input::placeholder{color:var(--muted)}
 select{appearance:none;-webkit-appearance:none;cursor:pointer;padding-right:36px;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239b9bab' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23686878' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   background-repeat:no-repeat;background-position:right 14px center}
 input[type=color]{padding:0;width:40px;height:40px;border-radius:50%;overflow:hidden;cursor:pointer;background:none}
 input[type=color]::-webkit-color-swatch-wrapper{padding:0} input[type=color]::-webkit-color-swatch{border:0;border-radius:50%}
@@ -344,7 +344,7 @@ import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signI
 import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, collection, onSnapshot, setDoc, deleteDoc, writeBatch, getDocs, query, where, limit, connectFirestoreEmulator }
   from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
 
-const APP_VERSION = '0.5.0';
+const APP_VERSION = '0.5.1';
 const LONG_TIMER_H = 10;       // horas a partir de las cuales se pide revisar un temporizador olvidado
 const HISTORY_MONTHS = 3;     // meses que se cargan (y sincronizan en tiempo real) al abrir la app
 const SCHEMA = 1;              // súbelo cuando cambie la estructura de datos y añade una migración
@@ -576,14 +576,50 @@ const byName = (a,b)=>a.name.localeCompare(b.name);
 const activeClients = keep => db.clients.filter(c=>!c.archived || c.id===keep).sort(byName);
 const projectsOf = (cid, keep) => db.projects.filter(p=>p.clientId===cid && (!p.archived || p.id===keep)).sort(byName);
 const tasksOf = (pid, keep) => db.tasks.filter(t=>t.projectId===pid && (!t.archived || t.id===keep)).sort(byName);
-// Encadena tres selects Cliente → Proyecto → Tarea
+// Encadena tres selects Cliente → Proyecto → Tarea, con opción "+ Nuevo…" para crear sobre la marcha
+const NEW = '__new';
+const PALETTE = ['#5b5bf0','#1fb58f','#e8701a','#e5484d','#0ea5e9','#a855f7','#d4a106','#14b8a6'];
+function addNewOption(sel, label){ sel.insertAdjacentHTML('beforeend', `<option value="${NEW}">+ ${label}</option>`); }
+// Pide el nombre y crea el cliente/proyecto/tarea. Devuelve su id, o null si se cancela.
+function createInline(kind, parentId){
+  const q = { clients:'Nombre del nuevo cliente:', projects:'Nombre del nuevo proyecto:', tasks:'Nombre de la nueva tarea:' }[kind];
+  const name = (prompt(q) || '').trim();
+  if (!name) return null;
+  const parentKey = { projects:'clientId', tasks:'projectId' }[kind];
+  // Si ya existe uno con ese nombre (en el mismo cliente/proyecto), se reutiliza
+  const same = db[kind].find(x => x.name.toLowerCase()===name.toLowerCase() && (!parentKey || x[parentKey]===parentId));
+  if (same){ same.archived = false; save(); return same.id; }
+  const item = { id:uid(), name, archived:false };
+  if (kind==='clients') Object.assign(item, { rate:0, color: PALETTE[db.clients.length % PALETTE.length] });
+  else item[parentKey] = parentId;
+  db[kind].push(item); save();
+  toast({ clients:'Cliente creado', projects:'Proyecto creado', tasks:'Tarea creada' }[kind] + (kind==='clients' ? ' · pon su precio en Clientes' : ''));
+  return item.id;
+}
 function chain(cSel, pSel, tSel, vals={}, onChange){
-  fillSelect(cSel, activeClients(vals.clientId), '— Sin asignar —', vals.clientId);
-  const upT = tv => fillSelect(tSel, tasksOf(pSel.value, tv), '— sin tarea —', tv);
-  const upP = (pv, tv) => { fillSelect(pSel, projectsOf(cSel.value, pv), '— sin proyecto —', pv); upT(tv); };
-  cSel.onchange = () => { upP(); onTimerFieldChange(cSel); onChange?.(); };
-  pSel.onchange = () => { upT(); onTimerFieldChange(pSel); onChange?.(); };
-  tSel.onchange = () => { onTimerFieldChange(tSel); onChange?.(); };
+  const fillC = cv => { fillSelect(cSel, activeClients(cv), '— Sin asignar —', cv); addNewOption(cSel, 'Nuevo cliente…'); cSel.dataset.prev = cSel.value; };
+  const upT = tv => { fillSelect(tSel, tasksOf(pSel.value, tv), '— sin tarea —', tv); if (pSel.value) addNewOption(tSel, 'Nueva tarea…'); tSel.dataset.prev = tSel.value; };
+  const upP = (pv, tv) => { fillSelect(pSel, projectsOf(cSel.value, pv), '— sin proyecto —', pv); if (cSel.value) addNewOption(pSel, 'Nuevo proyecto…'); pSel.dataset.prev = pSel.value; upT(tv); };
+  // Si se elige "+ Nuevo…": crear y seleccionar; si se cancela, volver a lo que había
+  const handleNew = (sel, kind, parentId, refill) => {
+    if (sel.value !== NEW) return true;
+    const id = createInline(kind, parentId);
+    if (!id){ sel.value = sel.dataset.prev || ''; return false; }
+    refill(id); return true;
+  };
+  cSel.onchange = () => {
+    if (!handleNew(cSel, 'clients', null, fillC)) return;
+    cSel.dataset.prev = cSel.value; upP(); onTimerFieldChange(cSel); onChange?.();
+  };
+  pSel.onchange = () => {
+    if (!handleNew(pSel, 'projects', cSel.value, id => upP(id))) return;
+    pSel.dataset.prev = pSel.value; upT(); onTimerFieldChange(pSel); onChange?.();
+  };
+  tSel.onchange = () => {
+    if (!handleNew(tSel, 'tasks', pSel.value, id => upT(id))) return;
+    tSel.dataset.prev = tSel.value; onTimerFieldChange(tSel); onChange?.();
+  };
+  fillC(vals.clientId);
   upP(vals.projectId, vals.taskId);
 }
 
