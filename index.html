@@ -33,7 +33,7 @@ html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--text);font:400 15px/1.5 Poppins,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
 button,input,select,textarea{font:inherit;color:inherit}
 .num,.dur,.clock,td{font-variant-numeric:tabular-nums}
-.wrap{max-width:880px;margin:0 auto;padding:0 20px}
+.wrap{max-width:1000px;margin:0 auto;padding:0 20px}
 .muted{color:var(--muted)} .small{font-size:13px}
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .sp{flex:1}
@@ -42,13 +42,15 @@ svg.i{width:18px;height:18px;flex:none}
 /* --- Cabecera --- */
 header{position:sticky;top:0;z-index:5;background:var(--bg)}
 .top{display:flex;align-items:center;gap:12px;height:64px}
-.logo{font-weight:600;font-size:17px;letter-spacing:-.2px;white-space:nowrap}
+.logo{font-weight:600;font-size:17px;letter-spacing:-.2px;white-space:nowrap;display:inline-flex;align-items:center;gap:8px;color:var(--text);text-decoration:none}
+.logo img{width:26px;height:26px;border-radius:7px;flex:none}
 .logo b{color:var(--accent);font-weight:600}
 .live{font-size:13px;color:var(--accent);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sync{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;white-space:nowrap}
 .sync::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--ok)}
 .sync.busy::before{background:var(--warn)} .sync.off::before{background:var(--danger)}
-.avatar{width:32px;height:32px;border-radius:50%;border:0;background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;flex:none}
+.avatar{width:32px;height:32px;border-radius:50%;border:0;padding:0;overflow:hidden;background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:600;cursor:pointer;flex:none}
+.avatar img{width:100%;height:100%;object-fit:cover;display:block}
 
 /* --- Navegación: arriba en escritorio, abajo en el móvil --- */
 nav#tabs{display:flex;gap:4px;padding:0 0 12px}
@@ -115,11 +117,19 @@ body[data-tab=timer] .live{display:none}
 @keyframes pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 35%,transparent)}70%{box-shadow:0 0 0 16px transparent}100%{box-shadow:0 0 0 0 transparent}}
 .fields{display:flex;flex-direction:column;gap:8px}
 .fields .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.field{position:relative;margin:0;background:var(--soft);border-radius:var(--radius);padding:9px 14px 0;text-transform:none;letter-spacing:0}
+.field{position:relative;margin:0;background:var(--soft);border-radius:var(--radius);padding:9px 14px 0;cursor:pointer;min-width:0}
 .field small{display:block;font-size:10.5px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)}
-.field select{background-color:transparent;padding:0 28px 10px 0;border-radius:0;background-position:right 0 top 4px;box-shadow:none!important;font-size:14.5px;color:var(--text)}
 .field:focus-within{box-shadow:0 0 0 2px var(--accent)}
 .sec{display:flex;justify-content:space-between;align-items:baseline;margin:30px 0 4px;font-size:13px;color:var(--muted);font-weight:500}
+@media (min-width:761px){
+  .clock{font-size:52px;letter-spacing:-1.5px;margin:12px 0 4px}
+  .play{width:64px;height:64px;margin:16px auto 22px} .play svg{width:22px;height:22px}
+}
+@media (min-width:1000px){
+  .timer{max-width:none;display:grid;grid-template-columns:360px 1fr;gap:56px;align-items:start}
+  .tmain{position:sticky;top:124px}
+  .tside .sec{margin-top:14px}
+}
 .sec b{color:var(--text);font-weight:600;font-size:15px}
 
 /* --- Listas de registros --- */
@@ -170,7 +180,8 @@ tfoot td{border-bottom:0;border-top:2px solid var(--text);font-weight:600}
 .gate{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}
 .gate[hidden]{display:none}
 .gatebox{max-width:380px;width:100%;text-align:center}
-.gatebox .logo{font-size:30px;display:block;margin-bottom:10px}
+.gatebox .logo{font-size:30px;margin-bottom:12px;gap:12px}
+.gatebox .logo img{width:44px;height:44px;border-radius:12px}
 .gatebox .muted{font-size:14px}
 .gatebox .btn{margin-top:26px;width:100%;justify-content:center;padding:14px}
 .gatebox code{background:var(--soft);padding:1px 6px;border-radius:5px}
@@ -183,13 +194,87 @@ dialog h2{font-size:17px;margin-bottom:18px}
 .toast{position:fixed;bottom:24px;left:50%;transform:translate(-50%,8px);background:var(--text);color:var(--bg);padding:10px 18px;border-radius:30px;font-size:13.5px;opacity:0;transition:.2s;pointer-events:none;z-index:60;white-space:nowrap}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 @media (max-width:760px){ .toast{bottom:92px} }
+
+/* --- Desplegables propios (sustituyen al <select> del navegador) --- */
+select.nat{display:none!important}
+.pick{width:100%;min-width:0;display:flex;align-items:center;gap:9px;background:var(--soft);border:0;border-radius:var(--radius);padding:12px 14px;text-align:left;cursor:pointer;font-size:14.5px;color:var(--text)}
+.pick .pl{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pick .pl.ph{color:var(--muted)}
+.pick .pdot{width:9px;height:9px;border-radius:50%;flex:none}
+.pick::after{content:"";width:12px;height:12px;flex:none;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23686878' stroke-width='2.5' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") no-repeat center}
+.pick:focus-visible{outline:none;box-shadow:0 0 0 2px var(--accent)}
+.field .pick{background:transparent;padding:1px 0 10px;border-radius:0;box-shadow:none!important}
+.field:has(.pick:focus-visible){box-shadow:0 0 0 2px var(--accent)}
+#pop{position:fixed;z-index:100;background:var(--bg);border-radius:14px;box-shadow:0 14px 44px rgba(0,0,0,.16),0 0 0 1px var(--line);padding:6px;max-height:340px;display:flex;flex-direction:column;min-width:220px}
+#pop .ps{margin:2px 2px 6px;padding:9px 12px;font-size:14px;flex:none}
+#pop .plist{overflow:auto;flex:1;overscroll-behavior:contain}
+.opt{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;cursor:pointer;font-size:14px;line-height:1.35}
+.opt.hl{background:var(--soft)}
+.opt.sel{color:var(--accent);font-weight:500}
+.opt.sel::after{content:"";margin-left:auto;width:14px;height:14px;flex:none;background:currentColor;
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5L20 7'/%3E%3C/svg%3E") center/contain no-repeat;
+  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l5 5L20 7'/%3E%3C/svg%3E") center/contain no-repeat}
+.opt.ph{color:var(--muted)}
+.opt.create{color:var(--accent);font-weight:500;border-top:1px solid var(--line);border-radius:0 0 9px 9px;margin-top:2px}
+.opt .odot{width:9px;height:9px;border-radius:50%;flex:none}
+.opt.none{color:var(--muted);cursor:default}
+#popbg{position:fixed;inset:0;z-index:99;background:rgba(20,20,30,.3);display:none}
+@media (max-width:760px){
+  #popbg{display:block}
+  #pop{left:0!important;right:0!important;top:auto!important;bottom:0;width:auto!important;border-radius:20px 20px 0 0;max-height:72vh;padding:10px 10px calc(16px + env(safe-area-inset-bottom))}
+  #pop::before{content:"";width:38px;height:4px;border-radius:4px;background:var(--soft2);margin:0 auto 10px;flex:none}
+  .opt{padding:12px 14px;font-size:15px}
+}
+/* --- Colores --- */
+.sw{display:flex;flex-wrap:wrap;gap:9px;padding:6px 4px;max-width:250px}
+.sw button,.sw label{width:28px;height:28px;border-radius:50%;border:0;cursor:pointer;padding:0;position:relative;flex:none}
+.sw button.on{box-shadow:0 0 0 2px var(--bg),0 0 0 4px var(--text)}
+.sw label{background:conic-gradient(#e5484d,#d4a106,#84cc16,#14b8a6,#0ea5e9,#5b5bf0,#a855f7,#ec4899,#e5484d);display:grid;place-items:center}
+.sw label::after{content:"+";color:#fff;font-weight:600;font-size:16px;text-shadow:0 0 3px rgba(0,0,0,.4)}
+.sw label input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+#pop .sw{padding:8px}
+.cdot{width:20px;height:20px;border-radius:50%;border:0;cursor:pointer;flex:none;padding:0}
+.cdot:hover{box-shadow:0 0 0 3px var(--soft2)}
+/* --- Ventanas de confirmación --- */
+#ask p{margin:-6px 0 14px;line-height:1.55}
+#ask input{margin-bottom:4px}
+.rev{display:flex;flex-direction:row-reverse;justify-content:flex-start;gap:8px}
+.btn.dangerfill{background:var(--danger);color:#fff}
+/* --- Grupos plegables --- */
+.gh{display:flex;align-items:center;gap:10px;min-height:48px;padding:6px 0;border-bottom:1px solid var(--line);cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent}
+.gh .chev{width:16px;height:16px;color:var(--muted);flex:none;transition:transform .15s}
+.gh .nochev{width:16px;flex:none}
+.grp.open>.gh .chev{transform:rotate(90deg)}
+.gh .gn{flex:1;min-width:0}
+.gh .gn .n{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:14.5px}
+.gh .gs{font-size:12px;color:var(--muted);font-weight:400}
+.gh .gt{font-weight:600;font-size:14px;white-space:nowrap}
+.lvl1>.gh .n{font-weight:600}
+.lvl2>.gh .n{font-weight:500}
+.lvl3>.gh .n{font-weight:400}
+.gb{display:none;padding-left:26px}
+.grp.open>.gb{display:block}
+.gb .entry{padding:9px 0}
+.warnhead .n{color:var(--warn)}
+.live-row .t{color:var(--accent)}
+.livedot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex:none;animation:blink 1.4s infinite}
+@keyframes blink{50%{opacity:.25}}
+.ctrls{display:flex;align-items:center;gap:0;flex:none}
+.rbtn{display:inline-flex;align-items:center;gap:4px}
+.rbtn.inh{background:none;color:var(--muted);font-weight:400}
+.rbtn.inh:hover{background:var(--soft)}
+.rbtn svg{width:13px;height:13px}
+.seg{display:inline-flex;background:var(--soft);border-radius:10px;padding:3px;gap:2px;flex-wrap:wrap}
+.seg button{border:0;background:none;padding:6px 12px;border-radius:8px;font-size:13px;color:var(--muted);cursor:pointer}
+.seg button.on{background:var(--bg);color:var(--text);font-weight:500;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+@media (max-width:560px){ .gb{padding-left:18px} .seg button{padding:6px 9px} }
 </style>
 </head>
 <body data-tab="timer">
 <!-- Pantalla de acceso / configuración -->
 <div class="gate" id="gate">
   <div class="gatebox">
-    <span class="logo">tempo<b>miq</b></span>
+    <span class="logo"><img src="icon.svg" alt=""><span>tempo<b>miq</b></span></span>
     <div id="gateMsg" class="muted">Cargando…</div>
     <button class="btn primary big" id="loginBtn" hidden><svg class="i" viewBox="0 0 24 24" fill="currentColor"><path d="M21.35 11.1H12v2.9h5.35c-.5 2.4-2.6 3.9-5.35 3.9a6 6 0 1 1 0-12c1.5 0 2.8.5 3.8 1.4l2.1-2.1A9 9 0 1 0 12 21c5 0 9-3.6 9-9 0-.3 0-.6-.05-.9z"/></svg>Entrar con Google</button>
   </div>
@@ -198,7 +283,7 @@ dialog h2{font-size:17px;margin-bottom:18px}
 <header>
   <div class="wrap">
     <div class="top">
-      <span class="logo">tempo<b>miq</b></span>
+      <a class="logo" href="#" id="home" title="Ir al temporizador"><img src="icon.svg" alt=""><span>tempo<b>miq</b></span></a>
       <span class="live" id="headLive"></span>
       <span class="sp"></span>
       <span class="sync" id="syncState"><span></span></span>
@@ -217,19 +302,23 @@ dialog h2{font-size:17px;margin-bottom:18px}
 <main class="wrap">
   <!-- TEMPORIZADOR -->
   <section data-view="timer" class="timer">
-    <div class="clock" id="clock">0:00:00</div>
-    <div class="runinfo" id="runInfo"></div>
-    <button class="play" id="startStop" aria-label="Iniciar"></button>
-    <div class="fields">
-      <label class="field"><small>Cliente</small><select id="tClient"></select></label>
-      <div class="two">
-        <label class="field"><small>Proyecto</small><select id="tProject"></select></label>
-        <label class="field"><small>Tarea</small><select id="tTask"></select></label>
+    <div class="tmain">
+      <div class="clock" id="clock">0:00:00</div>
+      <div class="runinfo" id="runInfo"></div>
+      <button class="play" id="startStop" aria-label="Iniciar"></button>
+      <div class="fields">
+        <div class="field"><small>Cliente</small><select id="tClient"></select></div>
+        <div class="two">
+          <div class="field"><small>Proyecto</small><select id="tProject"></select></div>
+          <div class="field"><small>Tarea</small><select id="tTask"></select></div>
+        </div>
+        <input id="tNote" placeholder="Añade una nota…">
       </div>
-      <input id="tNote" placeholder="Añade una nota…">
     </div>
-    <div class="sec"><b>Hoy</b><span class="num" id="todayTotal"></span></div>
-    <div id="todayList"></div>
+    <div class="tside">
+      <div class="sec"><b>Hoy</b><span class="num" id="todayTotal"></span></div>
+      <div id="todayList"></div>
+    </div>
   </section>
 
   <!-- REGISTROS -->
@@ -274,10 +363,15 @@ dialog h2{font-size:17px;margin-bottom:18px}
       <div class="grid">
         <div><label>Nombre</label><input id="cName" placeholder="Ej. Acme S.L."></div>
         <div><label>Tarifa €/hora (opcional)</label><input id="cRate" type="number" min="0" step="0.5" placeholder="0"></div>
-        <div><label>Color</label><input id="cColor" type="color" value="#2f6fde" style="height:40px;padding:2px"></div>
+        <div><label>Color</label><div class="sw" id="cSw" style="padding:4px 0"></div><input type="hidden" id="cColor"></div>
       </div>
-      <div class="row" style="margin-top:12px"><button class="btn primary" id="cAdd">Añadir cliente</button>
-        <label class="plain muted" style="margin-left:auto"><input type="checkbox" id="showArchived"> Mostrar archivados</label></div>
+      <div class="row" style="margin-top:12px"><button class="btn primary" id="cAdd">Añadir cliente</button></div>
+    </div>
+    <div class="row" style="margin-bottom:8px">
+      <div class="seg" id="cPeriod">
+        <button data-p="month">Este mes</button><button data-p="lastmonth">Mes pasado</button><button data-p="year">Este año</button><button data-p="all">Todo</button>
+      </div>
+      <label class="plain muted" style="margin-left:auto"><input type="checkbox" id="showArchived"> Archivados</label>
     </div>
     <div class="card tree" id="cTree"></div>
   </section>
@@ -327,13 +421,28 @@ dialog h2{font-size:17px;margin-bottom:18px}
     </div>
     <p class="small muted" id="dRateHint"></p>
     <p class="small muted">Si la hora de fin es anterior a la de inicio, se entiende que acaba al día siguiente.</p>
-    <div class="row" style="justify-content:flex-end;margin-top:12px">
-      <button class="btn" value="cancel" formnovalidate>Cancelar</button>
+    <div class="rev" style="margin-top:12px">
       <button class="btn primary" value="ok" id="dSave">Guardar</button>
+      <button class="btn" value="cancel" formnovalidate>Cancelar</button>
     </div>
   </form>
 </dialog>
 
+<!-- Ventana para preguntas y confirmaciones -->
+<dialog id="ask">
+  <form method="dialog" id="askForm">
+    <h2 id="askTitle"></h2>
+    <p class="small muted" id="askText"></p>
+    <input id="askInput" autocomplete="off">
+    <div class="rev" style="margin-top:18px">
+      <button class="btn primary" value="ok" id="askOk">Aceptar</button>
+      <button class="btn" value="cancel" formnovalidate id="askCancel">Cancelar</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="popbg" hidden></div>
+<div id="pop" hidden></div>
 <div class="toast" id="toast"></div>
 
 <script type="module">
@@ -351,7 +460,7 @@ import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signI
 import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, collection, onSnapshot, setDoc, deleteDoc, writeBatch, getDocs, query, where, limit, connectFirestoreEmulator }
   from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
 
-const APP_VERSION = '0.5.2';
+const APP_VERSION = '0.6.0';
 const LONG_TIMER_H = 10;       // horas a partir de las cuales se pide revisar un temporizador olvidado
 const HISTORY_MONTHS = 3;     // meses que se cargan (y sincronizan en tiempo real) al abrir la app
 const SCHEMA = 1;              // súbelo cuando cambie la estructura de datos y añade una migración
@@ -362,6 +471,8 @@ const ICON = {
   edit:'<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4"/></svg>',
   del:'<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7h14M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>',
   archive:'<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8M10 12h4"/></svg>',
+  chev:'<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>',
+  link:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>',
   restore:'<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/></svg>',
 };
 const LEGACY_KEY = 'temporizador.data'; // datos de la v0.1 (guardados en el navegador)
@@ -387,6 +498,146 @@ function download(name, text, type){
 }
 function showGate(msg, withLogin){
   $('#gate').hidden=false; $('#gateMsg').innerHTML=msg; $('#loginBtn').hidden=!withLogin;
+}
+
+/* ---------- Ventanas propias (sustituyen a alert/confirm/prompt del navegador) ---------- */
+function ask({ title, text='', input=false, value='', placeholder='', ok='Aceptar', cancel='Cancelar', danger=false, inputmode='text' }){
+  return new Promise(resolve => {
+    closePop();
+    const d=$('#ask'), inp=$('#askInput');
+    $('#askTitle').textContent = title;
+    $('#askText').innerHTML = text; $('#askText').hidden = !text;
+    inp.hidden = !input; inp.value = value ?? ''; inp.placeholder = placeholder; inp.inputMode = inputmode;
+    $('#askOk').textContent = ok; $('#askOk').className = 'btn ' + (danger ? 'dangerfill' : 'primary');
+    $('#askCancel').textContent = cancel || ''; $('#askCancel').hidden = !cancel;
+    d.returnValue = '';
+    d.showModal();
+    if (input){ inp.focus(); inp.select(); } else $('#askOk').focus();
+    d.addEventListener('close', () => {
+      const yes = d.returnValue === 'ok';
+      resolve(input ? (yes ? inp.value : null) : yes);
+    }, { once:true });
+  });
+}
+const uiConfirm = (title, text, opts={}) => ask({ title, text, ...opts });
+const uiAlert = (title, text) => ask({ title, text, ok:'Entendido', cancel:null });
+const uiPrompt = (title, opts={}) => ask({ title, input:true, ...opts });
+
+/* ---------- Desplegables propios ----------
+   El <select> original se queda oculto y sigue guardando el valor (así la lógica no cambia);
+   encima se pinta un botón con el estilo de la app que abre una lista con buscador. */
+const isMobile = () => matchMedia('(max-width:760px)').matches;
+const norm = t => String(t).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+let popAnchor = null, popCleanup = null;
+function closePop(){
+  const pop=$('#pop'); if (pop.hidden) return;
+  pop.hidden = true; $('#popbg').hidden = true; pop.innerHTML = '';
+  popCleanup?.(); popCleanup = null;
+  const a = popAnchor; popAnchor = null;
+  if (a && !isMobile()) a.focus?.({ preventScroll:true });
+}
+// Abre el panel flotante junto a "anchor"; render(box) lo rellena
+function openPop(anchor, render, { width } = {}){
+  closePop();
+  const pop=$('#pop'), bg=$('#popbg');
+  const host = anchor.closest('dialog') || document.body;   // dentro de una ventana abierta, el panel va dentro de ella
+  if (pop.parentElement !== host){ host.append(bg, pop); }
+  popAnchor = anchor;
+  render(pop);
+  pop.hidden = false; bg.hidden = false;
+  if (!isMobile()){
+    const r = (anchor.closest('.field') || anchor).getBoundingClientRect();
+    const w = Math.max(width || r.width, 230);
+    pop.style.width = w + 'px';
+    pop.style.left = Math.max(8, Math.min(r.left, innerWidth - w - 8)) + 'px';
+    const below = innerHeight - r.bottom - 12, h = Math.min(pop.scrollHeight, 340);
+    pop.style.top = (below >= Math.min(h, 240) || below > r.top ? r.bottom + 6 : Math.max(8, r.top - 6 - h)) + 'px';
+  }
+  const outside = ev => { if (!pop.contains(ev.target) && !anchor.contains(ev.target)) closePop(); };
+  const onScroll = ev => { if (!pop.contains(ev.target)) closePop(); };
+  const onKey = ev => { if (ev.key === 'Escape'){ ev.preventDefault(); ev.stopPropagation(); closePop(); } };
+  setTimeout(() => document.addEventListener('pointerdown', outside, true));
+  addEventListener('resize', closePop); document.addEventListener('scroll', onScroll, true); document.addEventListener('keydown', onKey, true);
+  popCleanup = () => { document.removeEventListener('pointerdown', outside, true); removeEventListener('resize', closePop);
+    document.removeEventListener('scroll', onScroll, true); document.removeEventListener('keydown', onKey, true); };
+}
+function enhance(sel){
+  if (sel._pick) return sel._pick;
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'pick';
+  b.innerHTML = '<span class="pdot" hidden></span><span class="pl"></span>';
+  sel.classList.add('nat'); sel.after(b); sel._pick = b;
+  b.onclick = () => openPicker(sel);
+  b.addEventListener('keydown', ev => { if (['ArrowDown','ArrowUp'].includes(ev.key)){ ev.preventDefault(); openPicker(sel); } });
+  sel.closest('.field')?.addEventListener('click', ev => { if (!b.contains(ev.target)) openPicker(sel); });
+  sel.addEventListener('change', () => syncPicker(sel));
+  return b;
+}
+function syncPicker(sel){
+  const b = enhance(sel), o = sel.selectedOptions[0];
+  const pl = b.querySelector('.pl'), dot = b.querySelector('.pdot');
+  pl.textContent = o ? o.textContent : ''; pl.classList.toggle('ph', !o || o.value === '');
+  dot.hidden = !o?.dataset.color; dot.style.background = o?.dataset.color || '';
+}
+let pendingName = null;   // nombre escrito en el buscador para "Crear «…»"
+function openPicker(sel){
+  const all = [...sel.options];
+  const newOpt = all.find(o => o.value === NEW);
+  const opts = all.filter(o => o !== newOpt);
+  const withSearch = !!newOpt || opts.length > 7;
+  const choose = (v, name) => {
+    closePop();
+    if (v === NEW) pendingName = name || null;
+    if (sel.value === v && v !== NEW) return;
+    sel.value = v; sel.dispatchEvent(new Event('change'));
+  };
+  openPop(sel._pick, box => {
+    box.innerHTML = (withSearch ? `<input class="ps" placeholder="${newOpt ? 'Buscar o crear…' : 'Buscar…'}" autocomplete="off">` : '') + '<div class="plist" role="listbox"></div>';
+    const list = box.querySelector('.plist'), inp = box.querySelector('.ps');
+    let items = [], hl = 0;
+    const paint = () => {
+      const q = norm(inp?.value.trim() || '');
+      items = opts.filter(o => !q || norm(o.textContent).includes(q)).map(o => ({ v:o.value, t:o.textContent, c:o.dataset.color, ph:o.value==='' }));
+      const typed = inp?.value.trim();
+      if (newOpt){
+        if (typed && !opts.some(o => norm(o.textContent) === norm(typed))) items.push({ v:NEW, t:`+ Crear «${typed}»`, create:true, name:typed });
+        else if (!typed) items.push({ v:NEW, t:newOpt.textContent, create:true });
+      }
+      hl = Math.max(0, items.findIndex(i => i.v === sel.value && !i.create)); if (q) hl = 0;
+      list.innerHTML = items.length ? items.map((i,k) => `<div class="opt${i.ph?' ph':''}${i.create?' create':''}${i.v===sel.value&&!i.create?' sel':''}${k===hl?' hl':''}" data-k="${k}" role="option">${i.c?`<span class="odot" style="background:${esc(i.c)}"></span>`:''}<span>${esc(i.t)}</span></div>`).join('')
+        : '<div class="opt none">Sin resultados</div>';
+      list.querySelector('.hl')?.scrollIntoView({ block:'nearest' });
+    };
+    const move = d => { if (!items.length) return; hl = (hl + d + items.length) % items.length;
+      list.querySelectorAll('.opt').forEach((el,k) => el.classList.toggle('hl', k===hl)); list.querySelector('.hl')?.scrollIntoView({ block:'nearest' }); };
+    list.onclick = ev => { const el = ev.target.closest('[data-k]'); if (!el) return; const i = items[+el.dataset.k]; choose(i.v, i.name); };
+    list.onmousemove = ev => { const el = ev.target.closest('[data-k]'); if (el && +el.dataset.k !== hl){ hl = +el.dataset.k; move(0); } };
+    const keys = ev => {
+      if (ev.key === 'ArrowDown'){ ev.preventDefault(); move(1); }
+      else if (ev.key === 'ArrowUp'){ ev.preventDefault(); move(-1); }
+      else if (ev.key === 'Enter'){ ev.preventDefault(); const i = items[hl]; if (i) choose(i.v, i.name); }
+    };
+    (inp || box).addEventListener('keydown', keys);
+    if (inp) inp.oninput = paint;
+    box.tabIndex = -1;
+    paint();
+    setTimeout(() => { if (inp && !isMobile()) inp.focus(); else box.focus({ preventScroll:true }); });
+  });
+}
+
+/* ---------- Colores ---------- */
+const PALETTE = ['#5b5bf0','#0ea5e9','#14b8a6','#1fb58f','#84cc16','#d4a106','#e8701a','#e5484d','#ec4899','#a855f7'];
+const swatches = cur => PALETTE.map(c => `<button type="button" data-sw="${c}" class="${c.toLowerCase()===String(cur).toLowerCase()?'on':''}" style="background:${c}" title="${c}"></button>`).join('')
+  + `<label title="Color personalizado"><input type="color" value="${esc(PALETTE.includes(cur) ? '#888888' : (cur || '#888888'))}"></label>`;
+// Panel de colores para un cliente ya creado
+function openColorPop(anchor, clientId){
+  const c = client(clientId); if (!c) return;
+  const apply = col => { c.color = col; save(); renderAll(); };
+  openPop(anchor, box => {
+    box.innerHTML = `<div class="sw">${swatches(c.color)}</div>`;
+    box.onclick = ev => { const b = ev.target.closest('[data-sw]'); if (b){ apply(b.dataset.sw); closePop(); } };
+    box.querySelector('input[type=color]').onchange = ev => { apply(ev.target.value); closePop(); };
+  }, { width: 260 });
 }
 
 /* ---------- Datos en memoria ---------- */
@@ -512,7 +763,7 @@ async function firstRun(){
   let legacy=null;
   try { legacy = JSON.parse(localStorage.getItem(LEGACY_KEY)); } catch(e){}
   if (legacy?.entries && (legacy.entries.length || legacy.clients?.length) &&
-      confirm(`He encontrado datos guardados en este navegador (versión anterior): ${legacy.clients.length} cliente(s) y ${legacy.entries.length} registro(s).\n\n¿Subirlos a tu base de datos en la nube?`)){
+      await uiConfirm('Datos de la versión anterior', `He encontrado datos guardados en este navegador: ${legacy.clients.length} cliente(s) y ${legacy.entries.length} registro(s). ¿Subirlos a tu base de datos en la nube?`, { ok:'Subir', cancel:'No, empezar de cero' })){
     await replaceAll(legacy); toast('Datos subidos a la nube ☁');
   } else {
     db = emptyDb(); await setDoc(metaRef, metaOnly());
@@ -538,12 +789,18 @@ if (!configured){
       if (e.code !== 'auth/popup-closed-by-user') showGate('No se pudo entrar: <b>'+esc(e.code)+'</b><br>Si pone <i>unauthorized-domain</i>, revisa el paso 5 del README.', true);
     }
   };
-  $('#logoutBtn').onclick = () => confirm('¿Cerrar sesión?') && signOut(auth);
+  $('#logoutBtn').onclick = async () => { if (await uiConfirm('¿Cerrar sesión?', esc(user?.email || ''), { ok:'Cerrar sesión' })) signOut(auth); };
   onAuthStateChanged(auth, u => {
     unsubs.forEach(f=>f()); unsubs=[]; db=emptyDb(); user=u;
     if (!u){ metaRef=entriesRef=null; showGate('Entra con tu cuenta de Google para ver tus tiempos.', true); return; }
     const nm = (u.displayName || u.email || '?').trim();
-    $('#logoutBtn').textContent = nm.split(/[\s@.]+/).filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join('');
+    const initials = nm.split(/[\s@.]+/).filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join('');
+    const av = $('#logoutBtn'); av.textContent = initials;
+    if (u.photoURL){   // foto de la cuenta de Google (si falla, se quedan las iniciales)
+      const img = new Image(); img.alt = ''; img.referrerPolicy = 'no-referrer';
+      img.onload = () => { av.textContent = ''; av.append(img); };
+      img.src = u.photoURL;
+    }
     $('#logoutBtn').title = `${u.email || ''} · Cerrar sesión`;
     showGate('Cargando tus datos…', false);
     startListeners();
@@ -576,8 +833,9 @@ function filterEntries(kind, from, to, clientId){
 
 /* ---------- Selects ---------- */
 function fillSelect(sel, items, placeholder, value){
-  sel.innerHTML = `<option value="">${esc(placeholder)}</option>` + items.map(i=>`<option value="${i.id}">${esc(i.name)}</option>`).join('');
+  sel.innerHTML = `<option value="">${esc(placeholder)}</option>` + items.map(i=>`<option value="${i.id}"${i.color?` data-color="${esc(i.color)}"`:''}>${esc(i.name)}</option>`).join('');
   if (value && items.some(i=>i.id===value)) sel.value=value;
+  syncPicker(sel);
 }
 const byName = (a,b)=>a.name.localeCompare(b.name);
 const activeClients = keep => db.clients.filter(c=>!c.archived || c.id===keep).sort(byName);
@@ -585,12 +843,12 @@ const projectsOf = (cid, keep) => db.projects.filter(p=>p.clientId===cid && (!p.
 const tasksOf = (pid, keep) => db.tasks.filter(t=>t.projectId===pid && (!t.archived || t.id===keep)).sort(byName);
 // Encadena tres selects Cliente → Proyecto → Tarea, con opción "+ Nuevo…" para crear sobre la marcha
 const NEW = '__new';
-const PALETTE = ['#5b5bf0','#1fb58f','#e8701a','#e5484d','#0ea5e9','#a855f7','#d4a106','#14b8a6'];
 function addNewOption(sel, label){ sel.insertAdjacentHTML('beforeend', `<option value="${NEW}">+ ${label}</option>`); }
-// Pide el nombre y crea el cliente/proyecto/tarea. Devuelve su id, o null si se cancela.
-function createInline(kind, parentId){
-  const q = { clients:'Nombre del nuevo cliente:', projects:'Nombre del nuevo proyecto:', tasks:'Nombre de la nueva tarea:' }[kind];
-  const name = (prompt(q) || '').trim();
+// Crea el cliente/proyecto/tarea con el nombre escrito en el buscador (o lo pide). Devuelve su id, o null si se cancela.
+async function createInline(kind, parentId){
+  let name = pendingName; pendingName = null;
+  if (name == null) name = await uiPrompt({ clients:'Nuevo cliente', projects:'Nuevo proyecto', tasks:'Nueva tarea' }[kind], { placeholder:'Nombre', ok:'Crear' });
+  name = (name || '').trim();
   if (!name) return null;
   const parentKey = { projects:'clientId', tasks:'projectId' }[kind];
   // Si ya existe uno con ese nombre (en el mismo cliente/proyecto), se reutiliza
@@ -604,31 +862,58 @@ function createInline(kind, parentId){
   return item.id;
 }
 function chain(cSel, pSel, tSel, vals={}, onChange){
-  const fillC = cv => { fillSelect(cSel, activeClients(cv), '— Sin asignar —', cv); addNewOption(cSel, 'Nuevo cliente…'); cSel.dataset.prev = cSel.value; };
-  const upT = tv => { fillSelect(tSel, tasksOf(pSel.value, tv), '— sin tarea —', tv); if (pSel.value) addNewOption(tSel, 'Nueva tarea…'); tSel.dataset.prev = tSel.value; };
-  const upP = (pv, tv) => { fillSelect(pSel, projectsOf(cSel.value, pv), '— sin proyecto —', pv); if (cSel.value) addNewOption(pSel, 'Nuevo proyecto…'); pSel.dataset.prev = pSel.value; upT(tv); };
-  // Si se elige "+ Nuevo…": crear y seleccionar; si se cancela, volver a lo que había
-  const handleNew = (sel, kind, parentId, refill) => {
+  const fillC = cv => { fillSelect(cSel, activeClients(cv), 'Sin asignar', cv); addNewOption(cSel, 'Nuevo cliente…'); cSel.dataset.prev = cSel.value; };
+  const upT = tv => { fillSelect(tSel, tasksOf(pSel.value, tv), 'Sin tarea', tv); if (pSel.value) addNewOption(tSel, 'Nueva tarea…'); tSel.dataset.prev = tSel.value; };
+  const upP = (pv, tv) => { fillSelect(pSel, projectsOf(cSel.value, pv), 'Sin proyecto', pv); if (cSel.value) addNewOption(pSel, 'Nuevo proyecto…'); pSel.dataset.prev = pSel.value; upT(tv); };
+  // Si se elige "+ Nuevo…"/"Crear «…»": crear y seleccionar; si se cancela, volver a lo que había
+  const handleNew = async (sel, kind, parentId, refill) => {
     if (sel.value !== NEW) return true;
-    const id = createInline(kind, parentId);
-    if (!id){ sel.value = sel.dataset.prev || ''; return false; }
+    const id = await createInline(kind, parentId);
+    if (!id){ sel.value = sel.dataset.prev || ''; syncPicker(sel); return false; }
     refill(id); return true;
   };
-  cSel.onchange = () => {
-    if (!handleNew(cSel, 'clients', null, fillC)) return;
+  cSel.onchange = async () => {
+    if (!await handleNew(cSel, 'clients', null, fillC)) return;
     cSel.dataset.prev = cSel.value; upP(); onTimerFieldChange(cSel); onChange?.();
   };
-  pSel.onchange = () => {
-    if (!handleNew(pSel, 'projects', cSel.value, id => upP(id))) return;
+  pSel.onchange = async () => {
+    if (!await handleNew(pSel, 'projects', cSel.value, id => upP(id))) return;
     pSel.dataset.prev = pSel.value; upT(); onTimerFieldChange(pSel); onChange?.();
   };
-  tSel.onchange = () => {
-    if (!handleNew(tSel, 'tasks', pSel.value, id => upT(id))) return;
+  tSel.onchange = async () => {
+    if (!await handleNew(tSel, 'tasks', pSel.value, id => upT(id))) return;
     tSel.dataset.prev = tSel.value; onTimerFieldChange(tSel); onChange?.();
   };
   fillC(vals.clientId);
   upP(vals.projectId, vals.taskId);
 }
+
+/* ---------- Grupos plegables (se recuerda en cada dispositivo) ---------- */
+let openState = {};
+try { openState = JSON.parse(localStorage.getItem('tempomiq.open') || '{}'); } catch(e){}
+const isOpen = (key, def=false) => key in openState ? openState[key] : def;
+document.addEventListener('click', ev => {
+  const h = ev.target.closest('[data-tog]'); if (!h) return;
+  if (ev.target.closest('button,input,label,[data-c],[data-act]')) return;   // los botones de dentro no pliegan
+  const g = h.parentElement, now = !g.classList.contains('open');
+  g.classList.toggle('open', now); openState[h.dataset.tog] = now;
+  try { localStorage.setItem('tempomiq.open', JSON.stringify(openState)); } catch(e){}
+});
+const sumMs = list => list.reduce((s,e) => s + ((e.end ?? Date.now()) - e.start), 0);
+// Agrupa registros en Cliente → Proyecto → Tarea
+function groupTree(list){
+  const tree = new Map();
+  const node = (map, k) => { if (!map.has(k)) map.set(k, { items:[], kids:new Map(), last:0 }); return map.get(k); };
+  for (const e of list){
+    const c = node(tree, e.clientId || '');
+    const p = e.projectId ? node(c.kids, e.projectId) : null;
+    const t = p && e.taskId ? node(p.kids, e.taskId) : null;
+    (t || p || c).items.push(e);
+    [c,p,t].forEach(n => { if (n) n.last = Math.max(n.last, e.start); });
+  }
+  return tree;
+}
+const allItems = n => [...n.items, ...[...n.kids.values()].flatMap(allItems)];
 
 /* ---------- Temporizador ---------- */
 const timerSel = () => ({ clientId:$('#tClient').value||null, projectId:$('#tProject').value||null, taskId:$('#tTask').value||null });
@@ -644,28 +929,63 @@ function renderTimer(){
   const rt = rateFor(r?.clientId ?? $('#tClient').value, r?.projectId ?? $('#tProject').value, r?.taskId ?? $('#tTask').value);
   $('#runInfo').textContent = (r ? `En marcha desde las ${fmtTime(r.start)}` : '') + (rt ? `${r?' · ':''}${fmtMoney(rt)}/h` : '');
   tick();
-  const list = filterEntries('today');
-  const total = list.reduce((s,e)=>s+(e.end-e.start),0) + (r ? Date.now()-r.start : 0);
-  $('#todayTotal').textContent = fmtDur(total);
-  $('#todayList').innerHTML = list.length ? list.map(e=>entryRow(e,true)).join('') : '<div class="empty">Aún no hay registros hoy.</div>';
+  renderToday();
+}
+let todayRenderedAt = 0;
+function renderToday(){
+  todayRenderedAt = Date.now();
+  const r = db.running;
+  const list = [...filterEntries('today')];
+  if (r) list.push({ ...r, id:'__running', running:true, end:null });
+  $('#todayTotal').textContent = fmtDur(sumMs(list));
+  if (!list.length){ $('#todayList').innerHTML = '<div class="empty">Aún no hay registros hoy.</div>'; return; }
+  const tree = groupTree(list);
+  const onPath = (k, v) => r && r[k] === v;
+  const leafs = items => items.sort((a,b) => b.start - a.start).map(e => entryRow(e, 'leaf')).join('');
+  const head = (key, lvl, name, ms, { dot, open, sub, cls='' } = {}) =>
+    `<div class="grp lvl${lvl}${open?' open':''} ${cls}"><div class="gh" data-tog="${key}">${ICON.chev}${dot?`<span class="dot" style="background:${esc(dot)}"></span>`:''}
+      <div class="gn"><span class="n">${name}</span>${sub?`<span class="gs">${sub}</span>`:''}</div><span class="gt">${fmtDur(ms)}</span></div><div class="gb">`;
+  let html = '';
+  // "Sin asignar" siempre arriba y visible
+  if (tree.has('')){
+    const n = tree.get(''); tree.delete('');
+    html += `<div class="grp lvl1 open warnhead"><div class="gh"><span class="nochev"></span><span class="dot" style="background:var(--warn)"></span>
+      <div class="gn"><span class="n">Sin asignar</span><span class="gs">toca ✎ para completar</span></div><span class="gt">${fmtDur(sumMs(n.items))}</span></div><div class="gb">${leafs(n.items)}</div></div>`;
+  }
+  [...tree.entries()].sort((a,b) => b[1].last - a[1].last).forEach(([cid, cn]) => {
+    const c = client(cid);
+    html += head(`h:c:${cid}`, 1, esc(c?.name ?? '(eliminado)'), sumMs(allItems(cn)), { dot: c?.color, open: isOpen(`h:c:${cid}`, onPath('clientId', cid)) });
+    [...cn.kids.entries()].sort((a,b) => b[1].last - a[1].last).forEach(([pid, pn]) => {
+      html += head(`h:p:${pid}`, 2, esc(project(pid)?.name ?? '(eliminado)'), sumMs(allItems(pn)), { open: isOpen(`h:p:${pid}`, onPath('projectId', pid)) });
+      [...pn.kids.entries()].sort((a,b) => b[1].last - a[1].last).forEach(([tid, tn]) => {
+        html += head(`h:t:${tid}`, 3, esc(task(tid)?.name ?? '(eliminada)'), sumMs(tn.items), { open: isOpen(`h:t:${tid}`, onPath('taskId', tid)) });
+        html += leafs(tn.items) + '</div></div>';
+      });
+      html += leafs(pn.items) + '</div></div>';
+    });
+    html += leafs(cn.items) + '</div></div>';
+  });
+  $('#todayList').innerHTML = html;
 }
 function tick(){
   const r=db.running, ms = r ? Date.now()-r.start : 0;
   $('#clock').textContent = fmtClock(ms);
   $('#headLive').textContent = r ? `● ${fmtClock(ms)} · ${client(r.clientId)?.name ?? 'Sin asignar'}` : '';
   document.title = r ? `${fmtClock(ms)} · tempomiq` : 'tempomiq';
+  const live = document.querySelector('#todayList .live-dur'); if (live) live.textContent = fmtDur(ms);
+  if (r && Date.now() - todayRenderedAt > 30000) renderToday();   // totales de "Hoy" al día mientras corre
 }
 setInterval(tick, 1000);
 
-function startTimer(vals){
+async function startTimer(vals){
   const r = db.running;
   if (r){
     const h = (Date.now()-r.start)/3600000;
     if (h >= LONG_TIMER_H){
-      alert(`Ya hay un temporizador en marcha desde el ${new Date(r.start).toLocaleString('es-ES')} (${fmtDur(Date.now()-r.start)}).\n\n¿Te lo dejaste encendido? Revisa su hora de fin y guárdalo antes de empezar otro.`);
+      await uiAlert('¿Te lo dejaste encendido?', `Hay un temporizador en marcha desde el ${new Date(r.start).toLocaleString('es-ES')} (${fmtDur(Date.now()-r.start)}). Revisa su hora de fin y guárdalo antes de empezar otro.`);
       return reviewRunning();
     }
-    if (!confirm(`Ya hay un temporizador en marcha (${labelOf(r)}, ${fmtDur(Date.now()-r.start)}).\n\n¿Pararlo, guardarlo y empezar el nuevo?`)) return;
+    if (!await uiConfirm('Ya hay un temporizador en marcha', `${esc(labelOf(r))} · ${fmtDur(Date.now()-r.start)}.<br>¿Pararlo, guardarlo y empezar el nuevo?`, { ok:'Parar y empezar' })) return;
     stopTimer(true);
   }
   db.running = { clientId:vals.clientId||null, projectId:vals.projectId||null, taskId:vals.taskId||null, note:vals.note||'', start: Date.now() };
@@ -702,16 +1022,21 @@ function onTimerFieldChange(sel){
 $('#tNote').addEventListener('change', e => onTimerFieldChange(e.target));
 
 /* ---------- Registros ---------- */
-function entryRow(e, withContinue){
+function entryRow(e, mode){
+  const leaf = mode === 'leaf';
+  if (e.running) return `<div class="entry live-row"><span class="livedot"></span>
+    <div class="info"><div class="t">En marcha desde las ${fmtTime(e.start)}</div>${e.note?`<div class="s">${esc(e.note)}</div>`:''}</div>
+    <span class="dur live-dur">${fmtDur(Date.now()-e.start)}</span><div class="acts" style="width:${leaf?96:64}px"></div></div>`;
   const c=client(e.clientId);
-  const title = e.clientId ? esc(labelOf(e)).replace(/ › /g,' · ') : '<span class="unassigned">Sin asignar</span><span class="tag">completar</span>';
+  const range = `${fmtTime(e.start)} – ${fmtTime(e.end)}`;
+  const title = leaf ? range : e.clientId ? esc(labelOf(e)).replace(/ › /g,' · ') : '<span class="unassigned">Sin asignar</span><span class="tag">completar</span>';
+  const sub = leaf ? esc(e.note || '') : range + (e.note ? ' · ' + esc(e.note) : '');
   return `<div class="entry">
-    <span class="dot" style="background:${esc(c?.color||'var(--warn)')}"></span>
-    <div class="info"><div class="t">${title}</div>
-      <div class="s">${fmtTime(e.start)} – ${fmtTime(e.end)}${e.note?' · '+esc(e.note):''}</div></div>
+    ${leaf ? '' : `<span class="dot" style="background:${esc(c?.color||'var(--warn)')}"></span>`}
+    <div class="info"><div class="t${leaf?' num':''}">${title}</div>${sub?`<div class="s">${sub}</div>`:''}</div>
     <span class="dur">${fmtDur(e.end-e.start)}</span>
     <div class="acts">
-      ${withContinue?`<button class="ib" data-act="cont" data-id="${e.id}" title="Continuar con esta tarea">${ICON.cont}</button>`:''}
+      ${leaf?`<button class="ib" data-act="cont" data-id="${e.id}" title="Continuar con esta tarea">${ICON.cont}</button>`:''}
       <button class="ib" data-act="edit" data-id="${e.id}" title="Editar">${ICON.edit}</button>
       <button class="ib danger" data-act="del" data-id="${e.id}" title="Borrar">${ICON.del}</button>
     </div></div>`;
@@ -721,15 +1046,16 @@ document.addEventListener('click', ev => {
   const e=byId(db.entries, b.dataset.id); if(!e) return;
   if (b.dataset.act==='edit') openEntry(e);
   if (b.dataset.act==='cont') startTimer({clientId:e.clientId, projectId:e.projectId, taskId:e.taskId, note:e.note});
-  if (b.dataset.act==='del' && confirm(`¿Borrar este registro (${fmtDur(e.end-e.start)})?`)){
+  if (b.dataset.act==='del') (async () => {
+    if (!await uiConfirm('¿Borrar este registro?', `${esc(labelOf(e))} · ${fmtTime(e.start)}–${fmtTime(e.end)} (${fmtDur(e.end-e.start)})`, { ok:'Borrar', danger:true })) return;
     recent = recent.filter(x=>x.id!==e.id); older.delete(e.id); rebuildEntries();
     removeEntry(e.id); renderAll(); toast('Registro borrado');
-  }
+  })();
 });
 function setupRange(prefix){
   const sel=$(`#${prefix}Range`);
   sel.innerHTML = RANGES.map(([v,l])=>`<option value="${v}">${l}</option>`).join('');
-  sel.value = prefix==='e' ? 'week' : 'month';
+  sel.value = prefix==='e' ? 'week' : 'month'; syncPicker(sel);
   sel.onchange = () => { $(`#${prefix}Custom`).hidden = sel.value!=='custom'; renderAll(); };
   [`#${prefix}Client`,`#${prefix}From`,`#${prefix}To`].forEach(s=>$(s).onchange=renderAll);
 }
@@ -837,66 +1163,99 @@ $('#rCsv').onclick = async () => {
 };
 
 /* ---------- Clientes / proyectos / tareas ---------- */
+function paintNewColor(c){
+  $('#cColor').value = c;
+  $('#cSw').innerHTML = swatches(c);
+  $('#cSw').querySelector('input[type=color]').onchange = ev => paintNewColor(ev.target.value);
+}
+$('#cSw').addEventListener('click', ev => { const b = ev.target.closest('[data-sw]'); if (b) paintNewColor(b.dataset.sw); });
+paintNewColor(PALETTE[0]);
 $('#cAdd').onclick = () => {
   const name=$('#cName').value.trim(); if(!name) return toast('Escribe un nombre');
-  db.clients.push({ id:uid(), name, rate: parseFloat($('#cRate').value)||0, color:$('#cColor').value, archived:false });
-  $('#cName').value=''; $('#cRate').value=''; save(); renderAll(); toast('Cliente añadido');
+  db.clients.push({ id:uid(), name, rate: parseFloat(String($('#cRate').value).replace(',','.'))||0, color:$('#cColor').value, archived:false });
+  $('#cName').value=''; $('#cRate').value=''; save();
+  paintNewColor(PALETTE[db.clients.length % PALETTE.length]);
+  renderAll(); toast('Cliente añadido');
+};
+$('#cName').addEventListener('keydown', ev => { if (ev.key==='Enter') $('#cAdd').click(); });
+// Periodo de las horas que se muestran en el árbol de clientes
+let cPeriod = 'month';
+try { cPeriod = localStorage.getItem('tempomiq.cperiod') || 'month'; } catch(e){}
+$('#cPeriod').onclick = ev => {
+  const b = ev.target.closest('[data-p]'); if (!b) return;
+  cPeriod = b.dataset.p; try { localStorage.setItem('tempomiq.cperiod', cPeriod); } catch(e){}
+  renderClients();
 };
 $('#showArchived').onchange = () => renderClients();
 function rateLabel(kind, x){
   if (kind==='clients') return hasRate(x) && +x.rate ? `${fmtMoney(+x.rate)}/h` : 'sin precio';
   if (hasRate(x)) return +x.rate ? `${fmtMoney(+x.rate)}/h` : 'no facturable';
-  const inh = kind==='projects' ? rateFor(x.clientId) : rateFor(project(x.projectId)?.clientId, x.projectId);
-  return `hereda ${inh ? fmtMoney(inh)+'/h' : 'sin precio'}`;
+  const inh = inheritedRate(kind, x);
+  return `vinculado: hereda ${inh ? fmtMoney(inh)+'/h' : 'sin precio'}`;
 }
+const inheritedRate = (kind, x) => kind==='projects' ? rateFor(x.clientId) : rateFor(project(x.projectId)?.clientId, x.projectId);
 function rateShort(kind, x){
   if (hasRate(x) && +x.rate) return `${(+x.rate).toLocaleString('es-ES')} €/h`;
   if (kind==='clients') return '€/h';
-  return hasRate(x) ? 'no fact.' : 'hereda';
+  if (hasRate(x)) return 'no fact.';
+  const inh = inheritedRate(kind, x);
+  return `${ICON.link}${inh ? inh.toLocaleString('es-ES')+' €' : '—'}`;
 }
 function itemControls(kind, x){
-  return `<span class="rate">${rateLabel(kind,x)}</span>
-    <button class="rbtn${hasRate(x)&&(kind!=='clients'||+x.rate)?' set':''}" data-c="rate" data-k="${kind}" data-id="${x.id}" title="Precio por hora: ${rateLabel(kind,x)}">${rateShort(kind,x)}</button>
+  const inh = kind!=='clients' && !hasRate(x);
+  return `<span class="ctrls">
+    <button class="rbtn${inh?' inh':hasRate(x)&&(kind!=='clients'||+x.rate)?' set':''}" data-c="rate" data-k="${kind}" data-id="${x.id}" title="Precio por hora: ${rateLabel(kind,x)}">${rateShort(kind,x)}</button>
     <button class="ib" data-c="rename" data-k="${kind}" data-id="${x.id}" title="Renombrar">${ICON.edit}</button>
     <button class="ib" data-c="archive" data-k="${kind}" data-id="${x.id}" title="${x.archived?'Recuperar':'Archivar'}">${x.archived?ICON.restore:ICON.archive}</button>
-    <button class="ib danger" data-c="delete" data-k="${kind}" data-id="${x.id}" title="Borrar">${ICON.del}</button>`;
+    <button class="ib danger" data-c="delete" data-k="${kind}" data-id="${x.id}" title="Borrar">${ICON.del}</button></span>`;
 }
 function renderClients(){
   const show=$('#showArchived').checked;
   const vis = l => l.filter(x=>show||!x.archived).sort(byName);
+  document.querySelectorAll('#cPeriod [data-p]').forEach(b => b.classList.toggle('on', b.dataset.p===cPeriod));
   if (!db.clients.length){ $('#cTree').innerHTML='<div class="empty">Aún no tienes clientes. Crea el primero arriba.</div>'; return; }
-  $('#cTree').innerHTML = '<ul>' + vis(db.clients).map(c=>`
-    <li class="${c.archived?'archived':''}">
-      <div class="item"><span class="name"><input type="color" value="${esc(c.color)}" data-color="${c.id}" title="Cambiar color"><b class="n">${esc(c.name)}</b></span>
-        ${itemControls('clients',c)}</div>
-      <ul>
-        ${vis(db.projects.filter(p=>p.clientId===c.id)).map(p=>`
-          <li class="${p.archived?'archived':''}"><div class="item"><span class="name"><span class="n">${esc(p.name)}</span></span>${itemControls('projects',p)}</div>
-            <ul>
-              ${vis(db.tasks.filter(t=>t.projectId===p.id)).map(t=>`<li class="${t.archived?'archived':''}"><div class="item"><span class="name"><span class="n muted">${esc(t.name)}</span></span>${itemControls('tasks',t)}</div></li>`).join('')}
-              <li><button class="addbtn" data-c="addTask" data-id="${p.id}">+ Tarea</button></li>
-            </ul></li>`).join('')}
-        <li><button class="addbtn" data-c="addProject" data-id="${c.id}">+ Proyecto</button></li>
-      </ul>
-    </li>`).join('') + '</ul>';
+  // Horas del periodo elegido, por cliente / proyecto / tarea
+  const list = filterEntries(cPeriod);
+  const tot = { c:{}, p:{}, t:{} };
+  (list || []).forEach(e => { const ms=e.end-e.start;
+    if (e.clientId) tot.c[e.clientId]=(tot.c[e.clientId]||0)+ms;
+    if (e.projectId) tot.p[e.projectId]=(tot.p[e.projectId]||0)+ms;
+    if (e.taskId) tot.t[e.taskId]=(tot.t[e.taskId]||0)+ms; });
+  const hrs = (k, id) => !list ? '…' : tot[k][id] ? fmtDur(tot[k][id]) : '—';
+  const row = (lvl, key, kind, x, nameHtml, kids) => `
+    <div class="grp lvl${lvl}${key && isOpen(key) ? ' open' : ''}${x.archived?' archived':''}">
+      <div class="gh"${key?` data-tog="${key}"`:''}>${key ? ICON.chev : '<span class="nochev"></span>'}
+        ${kind==='clients' ? `<button class="cdot" data-colorpick="${x.id}" style="background:${esc(x.color)}" title="Cambiar color"></button>` : ''}
+        <div class="gn"><span class="n">${nameHtml}</span><span class="gs num">${hrs(kind[0], x.id)}</span></div>
+        ${itemControls(kind, x)}
+      </div>${key ? `<div class="gb">${kids}</div>` : ''}
+    </div>`;
+  $('#cTree').innerHTML = vis(db.clients).map(c => row(1, `k:c:${c.id}`, 'clients', c, esc(c.name),
+    vis(db.projects.filter(p=>p.clientId===c.id)).map(p => row(2, `k:p:${p.id}`, 'projects', p, esc(p.name),
+      vis(db.tasks.filter(t=>t.projectId===p.id)).map(t => row(3, null, 'tasks', t, esc(t.name), '')).join('')
+      + `<button class="addbtn" data-c="addTask" data-id="${p.id}">+ Tarea</button>`)).join('')
+    + `<button class="addbtn" data-c="addProject" data-id="${c.id}">+ Proyecto</button>`)).join('');
 }
-$('#cTree').addEventListener('change', ev => {
-  const id=ev.target.dataset.color; if(!id) return;
-  client(id).color=ev.target.value; save(); renderAll();
+$('#cTree').addEventListener('click', ev => {
+  const b = ev.target.closest('[data-colorpick]'); if (b) openColorPop(b, b.dataset.colorpick);
 });
 $('#cTree').addEventListener('click', async ev => {
   const b=ev.target.closest('[data-c]'); if(!b) return;
   const {c:cmd, k:kind, id}=b.dataset;
   const x = kind ? byId(db[kind], id) : null;
-  if (cmd==='addProject'){ const n=prompt('Nombre del proyecto:'); if(!n?.trim()) return; db.projects.push({id:uid(), clientId:id, name:n.trim(), archived:false}); }
-  if (cmd==='addTask'){ const n=prompt('Nombre de la tarea:'); if(!n?.trim()) return; db.tasks.push({id:uid(), projectId:id, name:n.trim(), archived:false}); }
-  if (cmd==='rename'){ const n=prompt('Nuevo nombre:', x.name); if(!n?.trim()) return; x.name=n.trim(); }
+  const openKey = k => { openState[k] = true; try { localStorage.setItem('tempomiq.open', JSON.stringify(openState)); } catch(e){} };
+  if (cmd==='addProject'){ const n=await uiPrompt(`Nuevo proyecto de ${client(id)?.name||''}`, { placeholder:'Nombre del proyecto', ok:'Crear' }); if(!n?.trim()) return;
+    db.projects.push({id:uid(), clientId:id, name:n.trim(), archived:false}); openKey(`k:c:${id}`); }
+  if (cmd==='addTask'){ const n=await uiPrompt(`Nueva tarea en ${project(id)?.name||''}`, { placeholder:'Nombre de la tarea', ok:'Crear' }); if(!n?.trim()) return;
+    db.tasks.push({id:uid(), projectId:id, name:n.trim(), archived:false}); openKey(`k:p:${id}`); }
+  if (cmd==='rename'){ const n=await uiPrompt('Renombrar', { value:x.name, ok:'Guardar' }); if(!n?.trim()) return; x.name=n.trim(); }
   if (cmd==='rate'){
-    const help = kind==='clients' ? 'Precio €/hora para todo el cliente (vacío o 0 = sin precio):'
-      : `Precio €/hora para "${x.name}".\n\n· Déjalo VACÍO para heredar (${rateLabel(kind,{...x,rate:null}).replace('hereda ','')})\n· Pon 0 si no es facturable`;
-    const n=prompt(help, hasRate(x) ? x.rate : ''); if(n===null) return;
+    const help = kind==='clients' ? 'Se aplica a todos sus proyectos y tareas, salvo los que tengan precio propio. Vacío o 0 = sin precio.'
+      : `Déjalo <b>vacío</b> para que quede vinculado y herede el precio de arriba (${rateLabel(kind,{...x,rate:null}).replace('vinculado: hereda ','')}).<br>Pon <b>0</b> si no es facturable.`;
+    const n=await uiPrompt(`Precio €/hora · ${x.name}`, { text:help, value: hasRate(x) ? String(x.rate).replace('.',',') : '', placeholder: kind==='clients' ? '0' : 'Vinculado (hereda)', inputmode:'decimal', ok:'Guardar' });
+    if(n===null) return;
     const v=String(n).trim().replace(',','.');
-    if (v!=='' && isNaN(parseFloat(v))) return alert('Escribe un número, por ejemplo 45 o 37,5');
+    if (v!=='' && isNaN(parseFloat(v))) return uiAlert('Precio no válido', 'Escribe un número, por ejemplo 45 o 37,5');
     x.rate = v==='' ? (kind==='clients' ? 0 : null) : parseFloat(v);
     save(); renderAll();
     await applyRateToExisting(kind, id);
@@ -908,10 +1267,10 @@ $('#cTree').addEventListener('click', async ev => {
     let used = db.running?.[field]===id || db.entries.some(e=>e[field]===id);
     if (!used){
       try { used = !(await getDocs(query(entriesRef, where(field,'==',id), limit(1)))).empty; }
-      catch(e){ alert('No se pudo comprobar si tiene registros (¿sin conexión?). Inténtalo más tarde.'); return; }
+      catch(e){ return uiAlert('No se pudo comprobar', 'No sé si tiene registros (¿sin conexión?). Inténtalo más tarde.'); }
     }
-    if (used){ alert(`No se puede borrar: tiene registros de tiempo.\nPuedes archivarlo para ocultarlo, o borrar antes esos registros.`); return; }
-    if (!confirm(`¿Borrar "${x.name}"${kind!=='tasks'?' y todo lo que contiene':''}?`)) return;
+    if (used) return uiAlert('No se puede borrar', 'Tiene registros de tiempo. Puedes <b>archivarlo</b> para ocultarlo, o borrar antes esos registros.');
+    if (!await uiConfirm(`¿Borrar «${esc(x.name)}»?`, kind!=='tasks' ? 'También se borrará todo lo que contiene.' : '', { ok:'Borrar', danger:true })) return;
     if (kind==='clients'){ const pids=db.projects.filter(p=>p.clientId===id).map(p=>p.id); db.tasks=db.tasks.filter(t=>!pids.includes(t.projectId)); db.projects=db.projects.filter(p=>p.clientId!==id); }
     if (kind==='projects') db.tasks=db.tasks.filter(t=>t.projectId!==id);
     db[kind]=db[kind].filter(y=>y.id!==id);
@@ -922,8 +1281,8 @@ $('#cTree').addEventListener('click', async ev => {
 // Tras cambiar un precio: ¿recalcular los registros ya guardados?
 async function applyRateToExisting(kind, id){
   const field={clients:'clientId',projects:'projectId',tasks:'taskId'}[kind];
-  if (!confirm('Precio guardado. Se aplicará a los registros NUEVOS.\n\n¿Quieres aplicarlo también a los registros YA GUARDADOS de este ' +
-      ({clients:'cliente',projects:'proyecto',tasks:'tarea'}[kind]) + '?\n(Los registros con un precio puesto a mano no se tocan.)')) return;
+  if (!await uiConfirm('¿Aplicar también a lo ya registrado?', 'El nuevo precio se usará en los registros <b>nuevos</b>. ¿Quieres aplicarlo también a los registros <b>ya guardados</b> de ' +
+      ({clients:'este cliente',projects:'este proyecto',tasks:'esta tarea'}[kind]) + '?<br>Los registros con un precio puesto a mano no se tocan.', { ok:'Sí, aplicar a todo', cancel:'Solo a los nuevos' })) return;
   if (!await ensureLoaded(0)) return;
   const changed = db.entries.filter(e => e[field]===id && !e.rateManual).filter(e => {
     const r = rateFor(e.clientId, e.projectId, e.taskId);
@@ -946,12 +1305,13 @@ $('#impFile').onchange = async ev => {
   const f=ev.target.files[0]; ev.target.value=''; if(!f) return;
   let d;
   try{ d=JSON.parse(await f.text()); if (!Array.isArray(d.entries) || !Array.isArray(d.clients)) throw 0; }
-  catch(e){ alert('El archivo no es una copia válida del temporizador.'); return; }
-  if (!confirm(`Esta copia tiene ${d.clients.length} cliente(s) y ${d.entries.length} registro(s).\nSe REEMPLAZARÁN todos los datos actuales. ¿Continuar?`)) return;
+  catch(e){ return uiAlert('Archivo no válido', 'El archivo no es una copia del temporizador.'); }
+  if (!await uiConfirm('¿Importar esta copia?', `Tiene ${d.clients.length} cliente(s) y ${d.entries.length} registro(s). Se <b>reemplazarán</b> todos los datos actuales.`, { ok:'Importar', danger:true })) return;
   try{ await replaceAll(d); toast('Copia importada'); } catch(e){ fail(e); }
 };
 $('#wipe').onclick = async () => {
-  if (prompt('Esto borra TODO de la base de datos. Escribe BORRAR para confirmar:')!=='BORRAR') return;
+  const w = await uiPrompt('¿Borrar todos los datos?', { text:'Se borrará <b>todo</b> de la base de datos y no se puede deshacer. Escribe <b>BORRAR</b> para confirmar.', placeholder:'BORRAR', ok:'Borrar todo', danger:true });
+  if ((w||'').trim().toUpperCase() !== 'BORRAR') return;
   try{ await replaceAll(emptyDb()); toast('Datos borrados'); } catch(e){ fail(e); }
 };
 function renderData(){
@@ -970,6 +1330,8 @@ $('#tabs').onclick = ev => {
 };
 function renderAll(){ renderTimer(); renderEntries(); renderReports(); renderClients(); renderData(); }
 
+$('#home').onclick = ev => { ev.preventDefault(); document.querySelector('#tabs [data-tab="timer"]').click(); };
+document.querySelectorAll('select').forEach(enhance);
 setupRange('e'); setupRange('r');
 try{ const t=localStorage.getItem('temporizador.tab'); if(t) document.querySelector(`#tabs [data-tab="${t}"]`)?.click(); }catch(e){}
 </script>
