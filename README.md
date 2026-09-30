@@ -3,7 +3,7 @@
 App para medir el tiempo dedicado a cada **cliente › proyecto › tarea**.
 Gratis: el código está en GitHub, la web en GitHub Pages y los datos en Firebase (Google).
 
-## Qué hace (v0.5.1)
+## Qué hace (v0.5.2)
 
 - Iniciar/parar el temporizador en tiempo real, **sincronizado entre dispositivos** (lo inicias en el móvil y lo paras en el PC).
 - Añadir, editar y borrar registros de tiempo a mano.
@@ -95,6 +95,7 @@ Antes de un cambio grande, exporta una copia JSON (pestaña *Datos*) por si acas
 
 ## Historial de versiones
 
+- **0.5.2**: Icono propio y app instalable (escritorio y móvil).
 - **0.5.1**: Grises más legibles y opción "+ Nuevo…" en los desplegables de cliente, proyecto y tarea.
 - **0.5.0**: Nuevo diseño minimalista (tipografía Poppins, menú inferior en el móvil, modo oscuro automático).
 - **0.4.0**: Precios por cliente/proyecto/tarea en cascada, temporizador sin asignar y aviso de temporizadores olvidados.
