@@ -59,6 +59,8 @@ tr.l3 td:first-child{padding-left:40px;color:var(--muted)}
 .item{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .item .name{flex:1;min-width:120px}
 .archived{opacity:.5}
+.unassigned{color:#d9730d;font-weight:600}
+.rate{color:var(--muted);font-size:13px}
 .empty{padding:24px;text-align:center;color:var(--muted)}
 dialog{border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--text);padding:20px;width:min(480px,calc(100vw - 32px))}
 dialog::backdrop{background:rgba(0,0,0,.4)}
@@ -207,7 +209,7 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
   <form method="dialog" id="dlgForm">
     <h2 id="dlgTitle">Registro</h2>
     <div class="grid">
-      <div><label>Cliente</label><select id="dClient" required></select></div>
+      <div><label>Cliente</label><select id="dClient"></select></div>
       <div><label>Proyecto</label><select id="dProject"></select></div>
       <div><label>Tarea</label><select id="dTask"></select></div>
     </div>
@@ -216,7 +218,11 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
       <div><label>Inicio</label><input type="time" id="dStart" required></div>
       <div><label>Fin</label><input type="time" id="dEnd" required></div>
     </div>
-    <div style="margin-top:12px"><label>Nota</label><input id="dNote"></div>
+    <div class="grid" style="margin-top:12px">
+      <div style="grid-column:span 2"><label>Nota</label><input id="dNote"></div>
+      <div><label>Precio €/h</label><input id="dRate" type="number" min="0" step="0.01"></div>
+    </div>
+    <p class="small muted" id="dRateHint"></p>
     <p class="small muted">Si la hora de fin es anterior a la de inicio, se entiende que acaba al día siguiente.</p>
     <div class="row" style="justify-content:flex-end;margin-top:12px">
       <button class="btn" value="cancel" formnovalidate>Cancelar</button>
@@ -242,7 +248,8 @@ import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signI
 import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, collection, onSnapshot, setDoc, deleteDoc, writeBatch, getDocs, query, where, limit, connectFirestoreEmulator }
   from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
 
-const APP_VERSION = '0.3.0';
+const APP_VERSION = '0.4.0';
+const LONG_TIMER_H = 10;       // horas a partir de las cuales se pide revisar un temporizador olvidado
 const HISTORY_MONTHS = 3;     // meses que se cargan (y sincronizan en tiempo real) al abrir la app
 const SCHEMA = 1;              // súbelo cuando cambie la estructura de datos y añade una migración
 const LEGACY_KEY = 'temporizador.data'; // datos de la v0.1 (guardados en el navegador)
@@ -284,7 +291,20 @@ const byId = (list, id) => list.find(x => x.id === id);
 const client = id => byId(db.clients, id);
 const project = id => byId(db.projects, id);
 const task = id => byId(db.tasks, id);
-const labelOf = e => [client(e.clientId)?.name ?? '(cliente eliminado)', project(e.projectId)?.name, task(e.taskId)?.name].filter(Boolean).join(' › ');
+const labelOf = e => !e.clientId ? '⚠ Sin asignar' :
+  [client(e.clientId)?.name ?? '(cliente eliminado)', project(e.projectId)?.name, task(e.taskId)?.name].filter(Boolean).join(' › ');
+/* Precio/hora en cascada: Tarea → Proyecto → Cliente.
+   En proyecto y tarea: vacío (null) = hereda del nivel superior; 0 = no facturable. */
+const hasRate = x => x && x.rate !== null && x.rate !== undefined && x.rate !== '';
+function rateFor(clientId, projectId, taskId){
+  const t=task(taskId), p=project(projectId), c=client(clientId);
+  if (hasRate(t)) return +t.rate;
+  if (hasRate(p)) return +p.rate;
+  return +(c?.rate) || 0;
+}
+// Precio de un registro: el guardado en el registro, o si es antiguo, el calculado
+const effRate = e => (typeof e.rate === 'number') ? e.rate : rateFor(e.clientId, e.projectId, e.taskId);
+const amountOf = e => effRate(e) * (e.end - e.start) / 3600000;
 
 /* ---------- Firebase ---------- */
 const configured = firebaseConfig && firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith('PEGA');
@@ -433,7 +453,8 @@ function rangeBounds(kind, from, to){
 function filterEntries(kind, from, to, clientId){
   const [a,b]=rangeBounds(kind, from, to);
   if (a < olderFrom && entriesRef){ ensureLoaded(a); return null; }
-  return db.entries.filter(e => e.start>=a && e.start<b && (!clientId || e.clientId===clientId)).sort((x,y)=>y.start-x.start);
+  const okClient = e => !clientId || (clientId==='__none' ? !e.clientId : e.clientId===clientId);
+  return db.entries.filter(e => e.start>=a && e.start<b && okClient(e)).sort((x,y)=>y.start-x.start);
 }
 
 /* ---------- Selects ---------- */
@@ -446,13 +467,13 @@ const activeClients = keep => db.clients.filter(c=>!c.archived || c.id===keep).s
 const projectsOf = (cid, keep) => db.projects.filter(p=>p.clientId===cid && (!p.archived || p.id===keep)).sort(byName);
 const tasksOf = (pid, keep) => db.tasks.filter(t=>t.projectId===pid && (!t.archived || t.id===keep)).sort(byName);
 // Encadena tres selects Cliente → Proyecto → Tarea
-function chain(cSel, pSel, tSel, vals={}){
-  fillSelect(cSel, activeClients(vals.clientId), db.clients.length ? 'Elige cliente…' : 'Primero crea un cliente', vals.clientId);
+function chain(cSel, pSel, tSel, vals={}, onChange){
+  fillSelect(cSel, activeClients(vals.clientId), '— Sin asignar —', vals.clientId);
   const upT = tv => fillSelect(tSel, tasksOf(pSel.value, tv), '— sin tarea —', tv);
   const upP = (pv, tv) => { fillSelect(pSel, projectsOf(cSel.value, pv), '— sin proyecto —', pv); upT(tv); };
-  cSel.onchange = () => { upP(); onTimerFieldChange(cSel); };
-  pSel.onchange = () => { upT(); onTimerFieldChange(pSel); };
-  tSel.onchange = () => onTimerFieldChange(tSel);
+  cSel.onchange = () => { upP(); onTimerFieldChange(cSel); onChange?.(); };
+  pSel.onchange = () => { upT(); onTimerFieldChange(pSel); onChange?.(); };
+  tSel.onchange = () => { onTimerFieldChange(tSel); onChange?.(); };
   upP(vals.projectId, vals.taskId);
 }
 
@@ -462,12 +483,13 @@ function renderTimer(){
   const r = db.running;
   // Si no está en marcha, respetamos lo que tengas seleccionado ahora mismo
   const cur = timerSel();
-  chain($('#tClient'), $('#tProject'), $('#tTask'), r || (cur.clientId ? cur : db.lastSel) || {});
+  chain($('#tClient'), $('#tProject'), $('#tTask'), r || ($('#tClient').options.length ? cur : db.lastSel) || {}, () => { if (!db.running) renderTimer(); });
   if (r && document.activeElement !== $('#tNote')) $('#tNote').value = r.note ?? '';
   const b=$('#startStop');
   b.textContent = r ? '■ Parar' : '▶ Iniciar';
   b.classList.toggle('stop', !!r); b.classList.toggle('primary', !r);
-  $('#runInfo').textContent = r ? `En marcha desde las ${fmtTime(r.start)}` : '';
+  const rt = rateFor(r?.clientId ?? $('#tClient').value, r?.projectId ?? $('#tProject').value, r?.taskId ?? $('#tTask').value);
+  $('#runInfo').textContent = (r ? `En marcha desde las ${fmtTime(r.start)}` : '') + (rt ? `${r?' · ':''}${fmtMoney(rt)}/h` : '');
   tick();
   const list = filterEntries('today');
   const total = list.reduce((s,e)=>s+(e.end-e.start),0) + (r ? Date.now()-r.start : 0);
@@ -477,27 +499,42 @@ function renderTimer(){
 function tick(){
   const r=db.running, ms = r ? Date.now()-r.start : 0;
   $('#clock').textContent = fmtClock(ms);
-  $('#headLive').textContent = r ? `● ${fmtClock(ms)} · ${client(r.clientId)?.name ?? ''}` : '';
+  $('#headLive').textContent = r ? `● ${fmtClock(ms)} · ${client(r.clientId)?.name ?? 'Sin asignar'}` : '';
   document.title = r ? `${fmtClock(ms)} · Temporizador` : 'Temporizador de tareas';
 }
 setInterval(tick, 1000);
 
 function startTimer(vals){
-  if (!vals.clientId){ toast('Elige un cliente primero'); return; }
-  if (db.running) stopTimer(true);
-  db.running = { clientId:vals.clientId, projectId:vals.projectId||null, taskId:vals.taskId||null, note:vals.note||'', start: Date.now() };
-  db.lastSel = { clientId: vals.clientId, projectId: vals.projectId||null, taskId: vals.taskId||null };
+  const r = db.running;
+  if (r){
+    const h = (Date.now()-r.start)/3600000;
+    if (h >= LONG_TIMER_H){
+      alert(`Ya hay un temporizador en marcha desde el ${new Date(r.start).toLocaleString('es-ES')} (${fmtDur(Date.now()-r.start)}).\n\n¿Te lo dejaste encendido? Revisa su hora de fin y guárdalo antes de empezar otro.`);
+      return reviewRunning();
+    }
+    if (!confirm(`Ya hay un temporizador en marcha (${labelOf(r)}, ${fmtDur(Date.now()-r.start)}).\n\n¿Pararlo, guardarlo y empezar el nuevo?`)) return;
+    stopTimer(true);
+  }
+  db.running = { clientId:vals.clientId||null, projectId:vals.projectId||null, taskId:vals.taskId||null, note:vals.note||'', start: Date.now() };
+  if (vals.clientId) db.lastSel = { clientId: vals.clientId, projectId: vals.projectId||null, taskId: vals.taskId||null };
   save(); renderAll(); toast('▶ Temporizador iniciado');
 }
 function stopTimer(silent){
   const r=db.running; if(!r) return;
+  // Temporizador olvidado: se abre el registro para revisar la hora de fin antes de guardarlo
+  if (!silent && Date.now()-r.start >= LONG_TIMER_H*3600000) return reviewRunning();
   const end=Date.now();
   if (end - r.start >= 1000){
-    const e={ id: uid(), clientId:r.clientId, projectId:r.projectId||null, taskId:r.taskId||null, note:r.note||'', start:r.start, end };
+    const e={ id: uid(), clientId:r.clientId||null, projectId:r.projectId||null, taskId:r.taskId||null, note:r.note||'', start:r.start, end,
+              rate: rateFor(r.clientId, r.projectId, r.taskId), rateManual:false };
     keepLocal(e); putEntry(e);
   }
   db.running=null; save();
-  if(!silent){ renderAll(); toast('■ Tiempo guardado'); }
+  if(!silent){ renderAll(); toast(r.clientId ? '■ Tiempo guardado' : '■ Guardado sin asignar: complétalo con ✎'); }
+}
+function reviewRunning(){
+  const r=db.running;
+  openEntry(null, { ...r, end: Date.now(), fromRunning:true });
 }
 $('#startStop').onclick = () => {
   if (db.running) return stopTimer();
@@ -506,8 +543,7 @@ $('#startStop').onclick = () => {
 // Si cambias cliente/proyecto/tarea/nota con el temporizador en marcha, se actualiza el registro en curso
 function onTimerFieldChange(sel){
   if (!db.running || !['tClient','tProject','tTask','tNote'].includes(sel.id)) return;
-  const s = timerSel(); if (!s.clientId) return;
-  Object.assign(db.running, s, { note:$('#tNote').value.trim() });
+  Object.assign(db.running, timerSel(), { note:$('#tNote').value.trim() });
   save(); tick();
 }
 $('#tNote').addEventListener('change', e => onTimerFieldChange(e.target));
@@ -517,7 +553,7 @@ function entryRow(e, withContinue){
   const c=client(e.clientId);
   return `<div class="entry">
     <div class="when small muted">${fmtTime(e.start)}–${fmtTime(e.end)}</div>
-    <div><span class="dot" style="background:${esc(c?.color||'#999')}"></span>${esc(labelOf(e))}${e.note?`<div class="small muted">${esc(e.note)}</div>`:''}</div>
+    <div><span class="dot" style="background:${esc(c?.color||'#d9730d')}"></span><span class="${e.clientId?'':'unassigned'}">${esc(labelOf(e))}</span>${e.note?`<div class="small muted">${esc(e.note)}</div>`:''}</div>
     <div class="dur">${fmtDur(e.end-e.start)}</div>
     <div class="row" style="gap:4px">
       ${withContinue?`<button class="btn small" data-act="cont" data-id="${e.id}" title="Continuar con esta tarea">▶</button>`:''}
@@ -543,7 +579,7 @@ function setupRange(prefix){
   [`#${prefix}Client`,`#${prefix}From`,`#${prefix}To`].forEach(s=>$(s).onchange=renderAll);
 }
 function renderEntries(){
-  const cSel=$('#eClient'); fillSelect(cSel, [...db.clients].sort(byName), 'Todos', cSel.value);
+  const cSel=$('#eClient'); fillSelect(cSel, [...[...db.clients].sort(byName), {id:'__none', name:'⚠ Sin asignar'}], 'Todos', cSel.value);
   const list = filterEntries($('#eRange').value, $('#eFrom').value, $('#eTo').value, cSel.value);
   if (!list){ $('#eTotal').textContent='…'; $('#eList').innerHTML=historyNote(); return; }
   $('#eTotal').textContent = fmtDur(list.reduce((s,e)=>s+(e.end-e.start),0));
@@ -557,56 +593,73 @@ function renderEntries(){
 }
 
 /* ---------- Modal añadir/editar ---------- */
-let editing=null;
-function openEntry(e){
-  editing = e || null;
+let editing=null, fromRunning=false, rateTouched=false;
+const modalSel = () => [$('#dClient').value||null, $('#dProject').value||null, $('#dTask').value||null];
+function updateRateField(){
+  const auto = rateFor(...modalSel());
+  if (!rateTouched) $('#dRate').value = auto || '';
+  $('#dRateHint').textContent = `Precio según cliente/proyecto/tarea: ${auto ? fmtMoney(auto)+'/h' : 'sin precio'}. Puedes cambiarlo solo para este registro.`;
+}
+// e = registro a editar; preset = valores iniciales (p. ej. revisar un temporizador en marcha)
+function openEntry(e, preset){
+  editing = e || null; fromRunning = !!preset?.fromRunning;
   const now=Date.now();
-  const v = e || { ...(db.lastSel||{}), start: now-3600000, end: now, note:'' };
-  $('#dlgTitle').textContent = e ? 'Editar registro' : 'Nuevo registro';
-  chain($('#dClient'), $('#dProject'), $('#dTask'), v);
+  const v = e || preset || { ...(db.lastSel||{}), start: now-3600000, end: now, note:'' };
+  $('#dlgTitle').textContent = fromRunning ? 'Revisa el temporizador antes de guardarlo' : e ? 'Editar registro' : 'Nuevo registro';
+  chain($('#dClient'), $('#dProject'), $('#dTask'), v, updateRateField);
   $('#dDate').value=dateStr(v.start); $('#dStart').value=timeStr(v.start); $('#dEnd').value=timeStr(v.end);
   $('#dNote').value=v.note||'';
+  rateTouched = !!e?.rateManual;
+  $('#dRate').value = e ? (effRate(e) || '') : '';
+  updateRateField();
   $('#dlg').showModal();
 }
+$('#dRate').addEventListener('input', () => rateTouched = true);
 $('#addEntry').onclick = () => openEntry();
 $('#dlgForm').addEventListener('submit', ev => {
   if (ev.submitter?.value !== 'ok') return;
-  const cid=$('#dClient').value;
-  if (!cid){ ev.preventDefault(); toast('Elige un cliente'); return; }
   const start=new Date(`${$('#dDate').value}T${$('#dStart').value}`).getTime();
   let end=new Date(`${$('#dDate').value}T${$('#dEnd').value}`).getTime();
   if (isNaN(start)||isNaN(end)){ ev.preventDefault(); toast('Fecha u hora no válida'); return; }
   if (end<=start) end+=86400000;
-  const data={ clientId:cid, projectId:$('#dProject').value||null, taskId:$('#dTask').value||null, note:$('#dNote').value.trim(), start, end };
+  const [clientId, projectId, taskId] = modalSel();
+  const auto = rateFor(clientId, projectId, taskId);
+  const typed = parseFloat(String($('#dRate').value).replace(',','.'));
+  const rate = rateTouched && !isNaN(typed) ? typed : auto;
+  const data={ clientId, projectId, taskId, note:$('#dNote').value.trim(), start, end, rate, rateManual: rate !== auto };
   let e;
   if (editing){ e=Object.assign(editing, data); } else { e={ id:uid(), ...data }; }
-  keepLocal(e); putEntry(e); renderAll(); toast(editing?'Registro actualizado':'Registro añadido');
+  keepLocal(e); putEntry(e);
+  if (fromRunning){ db.running=null; save(); }
+  renderAll(); toast(editing?'Registro actualizado':'Registro guardado');
 });
 
 /* ---------- Informes ---------- */
 function renderReports(){
-  const cSel=$('#rClient'); fillSelect(cSel, [...db.clients].sort(byName), 'Todos', cSel.value);
+  const cSel=$('#rClient'); fillSelect(cSel, [...[...db.clients].sort(byName), {id:'__none', name:'⚠ Sin asignar'}], 'Todos', cSel.value);
   const list = filterEntries($('#rRange').value, $('#rFrom').value, $('#rTo').value, cSel.value);
   if (!list){ $('#rTable').innerHTML=historyNote(); return; }
   if (!list.length){ $('#rTable').innerHTML='<div class="empty">No hay registros en este periodo.</div>'; return; }
   const tree={};
   list.forEach(e=>{
-    const ms=e.end-e.start;
-    const c=(tree[e.clientId] ??= {ms:0, p:{}}); c.ms+=ms;
-    const p=(c.p[e.projectId||''] ??= {ms:0, t:{}}); p.ms+=ms;
-    p.t[e.taskId||''] = (p.t[e.taskId||'']||0)+ms;
+    const ms=e.end-e.start, eur=amountOf(e);
+    const c=(tree[e.clientId||''] ??= {ms:0, eur:0, p:{}}); c.ms+=ms; c.eur+=eur;
+    const p=(c.p[e.projectId||''] ??= {ms:0, eur:0, t:{}}); p.ms+=ms; p.eur+=eur;
+    const t=(p.t[e.taskId||''] ??= {ms:0, eur:0}); t.ms+=ms; t.eur+=eur;
   });
+  const money = v => v ? fmtMoney(v) : '—';
   let totMs=0, totEur=0, html='';
   Object.entries(tree).sort((a,b)=>b[1].ms-a[1].ms).forEach(([cid,c])=>{
-    const cl=client(cid), rate=+cl?.rate||0, eur=rate*c.ms/3600000;
-    totMs+=c.ms; totEur+=eur;
-    html+=`<tr class="l1"><td><span class="dot" style="background:${esc(cl?.color||'#999')}"></span>${esc(cl?.name??'(eliminado)')}</td><td class="r">${fmtDur(c.ms)}</td><td class="r">${fmtHours(c.ms)}</td><td class="r">${rate?fmtMoney(eur):'—'}</td></tr>`;
+    const cl=client(cid);
+    totMs+=c.ms; totEur+=c.eur;
+    const name = cid ? esc(cl?.name??'(eliminado)') : '<span class="unassigned">⚠ Sin asignar</span>';
+    html+=`<tr class="l1"><td><span class="dot" style="background:${esc(cl?.color||'#d9730d')}"></span>${name}</td><td class="r">${fmtDur(c.ms)}</td><td class="r">${fmtHours(c.ms)}</td><td class="r">${money(c.eur)}</td></tr>`;
     Object.entries(c.p).sort((a,b)=>b[1].ms-a[1].ms).forEach(([pid,p])=>{
-      html+=`<tr class="l2"><td>${esc(project(pid)?.name??'Sin proyecto')}</td><td class="r">${fmtDur(p.ms)}</td><td class="r">${fmtHours(p.ms)}</td><td class="r">${rate?fmtMoney(rate*p.ms/3600000):''}</td></tr>`;
+      html+=`<tr class="l2"><td>${esc(project(pid)?.name??'Sin proyecto')}</td><td class="r">${fmtDur(p.ms)}</td><td class="r">${fmtHours(p.ms)}</td><td class="r">${money(p.eur)}</td></tr>`;
       const tks=Object.entries(p.t);
       if (tks.length===1 && !tks[0][0]) return;
-      tks.sort((a,b)=>b[1]-a[1]).forEach(([tid,ms])=>{
-        html+=`<tr class="l3"><td>${esc(task(tid)?.name??'Sin tarea')}</td><td class="r">${fmtDur(ms)}</td><td class="r">${fmtHours(ms)}</td><td></td></tr>`;
+      tks.sort((a,b)=>b[1].ms-a[1].ms).forEach(([tid,t])=>{
+        html+=`<tr class="l3"><td>${esc(task(tid)?.name??'Sin tarea')}</td><td class="r">${fmtDur(t.ms)}</td><td class="r">${fmtHours(t.ms)}</td><td class="r">${money(t.eur)}</td></tr>`;
       });
     });
   });
@@ -617,8 +670,8 @@ function toCsv(list){
   const q = v => `"${String(v??'').replace(/"/g,'""')}"`;
   const rows=[['Fecha','Inicio','Fin','Horas','Cliente','Proyecto','Tarea','Nota','Tarifa €/h','Importe €']];
   list.slice().sort((a,b)=>a.start-b.start).forEach(e=>{
-    const c=client(e.clientId), h=(e.end-e.start)/3600000, rate=+c?.rate||0;
-    rows.push([dateStr(e.start), timeStr(e.start), timeStr(e.end), h.toFixed(2).replace('.',','), c?.name, project(e.projectId)?.name, task(e.taskId)?.name, e.note, rate?String(rate).replace('.',','):'', rate?(rate*h).toFixed(2).replace('.',','):'']);
+    const c=client(e.clientId), h=(e.end-e.start)/3600000, rate=effRate(e);
+    rows.push([dateStr(e.start), timeStr(e.start), timeStr(e.end), h.toFixed(2).replace('.',','), e.clientId ? c?.name : 'Sin asignar', project(e.projectId)?.name, task(e.taskId)?.name, e.note, rate?String(rate).replace('.',','):'', rate?(rate*h).toFixed(2).replace('.',','):'']);
   });
   return '﻿' + rows.map(r=>r.map(q).join(';')).join('\r\n'); // ; y BOM para que Excel en español lo abra bien
 }
@@ -635,8 +688,16 @@ $('#cAdd').onclick = () => {
   $('#cName').value=''; $('#cRate').value=''; save(); renderAll(); toast('Cliente añadido');
 };
 $('#showArchived').onchange = () => renderClients();
+function rateLabel(kind, x){
+  if (kind==='clients') return hasRate(x) && +x.rate ? `${fmtMoney(+x.rate)}/h` : 'sin precio';
+  if (hasRate(x)) return +x.rate ? `${fmtMoney(+x.rate)}/h` : 'no facturable';
+  const inh = kind==='projects' ? rateFor(x.clientId) : rateFor(project(x.projectId)?.clientId, x.projectId);
+  return `hereda ${inh ? fmtMoney(inh)+'/h' : 'sin precio'}`;
+}
 function itemControls(kind, x){
-  return `<button class="btn small" data-c="rename" data-k="${kind}" data-id="${x.id}">Renombrar</button>
+  return `<span class="rate">${rateLabel(kind,x)}</span>
+    <button class="btn small" data-c="rate" data-k="${kind}" data-id="${x.id}">€/h</button>
+    <button class="btn small" data-c="rename" data-k="${kind}" data-id="${x.id}">Renombrar</button>
     <button class="btn small" data-c="archive" data-k="${kind}" data-id="${x.id}">${x.archived?'Recuperar':'Archivar'}</button>
     <button class="btn small danger" data-c="delete" data-k="${kind}" data-id="${x.id}">Borrar</button>`;
 }
@@ -647,8 +708,7 @@ function renderClients(){
   $('#cTree').innerHTML = '<ul>' + vis(db.clients).map(c=>`
     <li class="${c.archived?'archived':''}">
       <div class="item"><span class="name"><span class="dot" style="background:${esc(c.color)}"></span><b>${esc(c.name)}</b>
-        <span class="muted small">${c.rate?` · ${fmtMoney(+c.rate)}/h`:''}</span></span>
-        <button class="btn small" data-c="rate" data-k="clients" data-id="${c.id}">Tarifa</button>
+</span>
         <input type="color" value="${esc(c.color)}" data-color="${c.id}" style="width:36px;height:30px;padding:2px" title="Color">
         ${itemControls('clients',c)}</div>
       <ul>
@@ -673,7 +733,17 @@ $('#cTree').addEventListener('click', async ev => {
   if (cmd==='addProject'){ const n=prompt('Nombre del proyecto:'); if(!n?.trim()) return; db.projects.push({id:uid(), clientId:id, name:n.trim(), archived:false}); }
   if (cmd==='addTask'){ const n=prompt('Nombre de la tarea:'); if(!n?.trim()) return; db.tasks.push({id:uid(), projectId:id, name:n.trim(), archived:false}); }
   if (cmd==='rename'){ const n=prompt('Nuevo nombre:', x.name); if(!n?.trim()) return; x.name=n.trim(); }
-  if (cmd==='rate'){ const n=prompt('Tarifa €/hora (0 = sin tarifa):', x.rate||0); if(n===null) return; x.rate=parseFloat(String(n).replace(',','.'))||0; }
+  if (cmd==='rate'){
+    const help = kind==='clients' ? 'Precio €/hora para todo el cliente (vacío o 0 = sin precio):'
+      : `Precio €/hora para "${x.name}".\n\n· Déjalo VACÍO para heredar (${rateLabel(kind,{...x,rate:null}).replace('hereda ','')})\n· Pon 0 si no es facturable`;
+    const n=prompt(help, hasRate(x) ? x.rate : ''); if(n===null) return;
+    const v=String(n).trim().replace(',','.');
+    if (v!=='' && isNaN(parseFloat(v))) return alert('Escribe un número, por ejemplo 45 o 37,5');
+    x.rate = v==='' ? (kind==='clients' ? 0 : null) : parseFloat(v);
+    save(); renderAll();
+    await applyRateToExisting(kind, id);
+    return;
+  }
   if (cmd==='archive') x.archived=!x.archived;
   if (cmd==='delete'){
     const field={clients:'clientId',projects:'projectId',tasks:'taskId'}[kind];
@@ -690,6 +760,20 @@ $('#cTree').addEventListener('click', async ev => {
   }
   save(); renderAll();
 });
+
+// Tras cambiar un precio: ¿recalcular los registros ya guardados?
+async function applyRateToExisting(kind, id){
+  const field={clients:'clientId',projects:'projectId',tasks:'taskId'}[kind];
+  if (!confirm('Precio guardado. Se aplicará a los registros NUEVOS.\n\n¿Quieres aplicarlo también a los registros YA GUARDADOS de este ' +
+      ({clients:'cliente',projects:'proyecto',tasks:'tarea'}[kind]) + '?\n(Los registros con un precio puesto a mano no se tocan.)')) return;
+  if (!await ensureLoaded(0)) return;
+  const changed = db.entries.filter(e => e[field]===id && !e.rateManual).filter(e => {
+    const r = rateFor(e.clientId, e.projectId, e.taskId);
+    if (e.rate === r) return false; e.rate = r; e.rateManual = false; return true;
+  });
+  for (let i=0; i<changed.length; i+=400){ const b=writeBatch(fs); changed.slice(i,i+400).forEach(e=>b.set(doc(entriesRef,e.id), e)); await b.commit().catch(fail); }
+  renderAll(); toast(`${changed.length} registro(s) actualizado(s)`);
+}
 
 /* ---------- Datos ---------- */
 $('#expJson').onclick = async () => {
