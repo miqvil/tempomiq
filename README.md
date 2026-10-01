@@ -3,12 +3,13 @@
 App para medir el tiempo dedicado a cada **cliente › proyecto › tarea**.
 Gratis: el código está en GitHub, la web en GitHub Pages y los datos en Firebase (Google).
 
-## Qué hace (v0.6.0)
+## Qué hace (v0.7.1)
 
 - Iniciar/parar el temporizador en tiempo real, **sincronizado entre dispositivos** (lo inicias en el móvil y lo paras en el PC).
 - Añadir, editar y borrar registros de tiempo a mano.
 - Clientes, proyectos y tareas: crear, renombrar, archivar y borrar. También se pueden crear al vuelo desde los desplegables ("+ Nuevo…").
 - Precio €/h en cascada: **Tarea → Proyecto → Cliente**. Vacío = hereda; 0 = no facturable. Cada registro guarda su precio, y al cambiar una tarifa la app pregunta si aplicarla también a lo ya registrado.
+- **Pagos**: registra pagos por cliente y ve automáticamente cuántas horas están pagadas y cuántas aún están pendientes. Especialmente útil cuando un cliente paga una cantidad fija que cubre X horas.
 - Temporizador **sin asignar**: arráncalo sin elegir nada y complétalo después.
 - Aviso si ya hay un temporizador en marcha, y revisión de la hora de fin si lleva más de 10 h (temporizador olvidado).
 - Informes por periodo con horas e importe, y exportación a CSV (se abre en Excel).
@@ -95,6 +96,8 @@ Antes de un cambio grande, exporta una copia JSON (pestaña *Datos*) por si acas
 
 ## Historial de versiones
 
+- **0.7.1**: Edición de pagos (click en la fila), negativos permitidos (devoluciones), notas opcionales, resumen de horas/cobrado, pagos en los informes.
+- **0.7.0**: Registro de pagos por cliente, cálculo automático de horas pagadas/pendientes.
 - **0.6.0**: Listas plegables con totales (Hoy y Clientes), desplegables propios con buscador y "Crear «…»", ventanas propias en lugar de las del navegador, diseño a dos columnas en escritorio, icono de vinculado en precios heredados, foto de Google, colores predefinidos.
 - **0.5.2**: Icono propio y app instalable (escritorio y móvil).
 - **0.5.1**: Grises más legibles y opción "+ Nuevo…" en los desplegables de cliente, proyecto y tarea.

@@ -294,6 +294,7 @@ select.nat{display:none!important}
       <button data-tab="entries"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span>Registros</span></button>
       <button data-tab="reports"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V10M12 20V4M19 20v-7"/></svg><span>Informes</span></button>
       <button data-tab="clients"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.5 3.4-5 6.5-5s5.7 1.5 6.5 5M16 4.5a3.5 3.5 0 0 1 0 7M18 15c2 .6 3.2 2.2 3.5 5"/></svg><span>Clientes</span></button>
+      <button data-tab="payments"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><path d="M12 1v6M12 17v6M4.22 4.22l4.24 4.24M15.54 15.54l4.24 4.24M1 12h6M17 12h6M4.22 19.78l4.24-4.24M15.54 8.46l4.24-4.24"/></svg><span>Pagos</span></button>
       <button data-tab="data"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg><span>Datos</span></button>
     </nav>
   </div>
@@ -374,6 +375,28 @@ select.nat{display:none!important}
       <label class="plain muted" style="margin-left:auto"><input type="checkbox" id="showArchived"> Archivados</label>
     </div>
     <div class="card tree" id="cTree"></div>
+  </section>
+
+  <!-- PAGOS -->
+  <section data-view="payments" hidden>
+    <div class="card" id="pSummary"></div>
+    <div class="card">
+      <h2 id="pFormTitle">Nuevo pago</h2>
+      <div class="grid">
+        <div><label>Cliente</label><select id="pClient"></select></div>
+        <div><label>Fecha</label><input type="date" id="pDate"></div>
+        <div><label>Importe € (negativo para devolución)</label><input type="number" id="pAmount" step="0.01"></div>
+        <div><label>Nota (opcional)</label><input id="pNote" placeholder="Ej. Ajuste, factura #..."></div>
+      </div>
+      <div class="row" style="margin-top:12px"><button class="btn primary" id="pAdd">Registrar</button><button class="btn" id="pCancel" hidden>Cancelar edición</button></div>
+    </div>
+    <div class="card">
+      <h2>Pagos registrados</h2>
+      <table id="pTable">
+        <thead><tr><th>Cliente</th><th class="r">Importe</th><th>Fecha</th><th class="r">Horas</th><th>Nota</th><th></th></tr></thead>
+        <tbody id="pBody"></tbody>
+      </table>
+    </div>
   </section>
 
   <!-- DATOS -->
@@ -460,10 +483,10 @@ import { getAuth, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signI
 import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, doc, collection, onSnapshot, setDoc, deleteDoc, writeBatch, getDocs, query, where, limit, connectFirestoreEmulator }
   from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
 
-const APP_VERSION = '0.6.0';
+const APP_VERSION = '0.7.1';
 const LONG_TIMER_H = 10;       // horas a partir de las cuales se pide revisar un temporizador olvidado
 const HISTORY_MONTHS = 3;     // meses que se cargan (y sincronizan en tiempo real) al abrir la app
-const SCHEMA = 1;              // súbelo cuando cambie la estructura de datos y añade una migración
+const SCHEMA = 2;              // súbelo cuando cambie la estructura de datos y añade una migración
 const ICON = {
   play:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg>',
   stop:'<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2.5"/></svg>',
@@ -474,6 +497,7 @@ const ICON = {
   chev:'<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>',
   link:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>',
   restore:'<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/></svg>',
+  cash:'<svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M12 9v6M9 12h6"/></svg>',
 };
 const LEGACY_KEY = 'temporizador.data'; // datos de la v0.1 (guardados en el navegador)
 
@@ -641,12 +665,13 @@ function openColorPop(anchor, clientId){
 }
 
 /* ---------- Datos en memoria ---------- */
-const META_FIELDS = ['schema','clients','projects','tasks','running','lastSel','lastBackup'];
-function emptyDb(){ return { schema:SCHEMA, clients:[], projects:[], tasks:[], entries:[], running:null, lastSel:null, lastBackup:null }; }
+const META_FIELDS = ['schema','clients','projects','tasks','running','lastSel','lastBackup','payments'];
+function emptyDb(){ return { schema:SCHEMA, clients:[], projects:[], tasks:[], entries:[], running:null, lastSel:null, lastBackup:null, payments:[] }; }
 // Cada vez que cambie la estructura, añade aquí un paso: if (d.schema < 2) { ...; d.schema = 2; }
 function migrate(d){
   d = Object.assign(emptyDb(), d);
   if (!d.schema) d.schema = 1;
+  if (d.schema < 2){ d.payments = []; d.schema = 2; }
   return d;
 }
 let db = emptyDb();
@@ -668,6 +693,45 @@ function rateFor(clientId, projectId, taskId){
 // Precio de un registro: el guardado en el registro, o si es antiguo, el calculado
 const effRate = e => (typeof e.rate === 'number') ? e.rate : rateFor(e.clientId, e.projectId, e.taskId);
 const amountOf = e => effRate(e) * (e.end - e.start) / 3600000;
+
+/* ---------- Pagos ---------- */
+// Calcula horas pagadas para un cliente ordenando pagos por fecha y sumando horas hasta completar
+function paidHoursFor(clientId){
+  const entries = db.entries.filter(e => e.clientId === clientId).sort((a,b) => a.start - b.start);
+  if (!entries.length) return 0;
+  let paid = 0;
+  for (const p of db.payments.filter(x => x.clientId === clientId).sort((a,b) => new Date(a.date) - new Date(b.date))){
+    const hoursInPayment = p.amount / rateFor(p.clientId, null, null) || 0;
+    let remaining = hoursInPayment;
+    for (const e of entries){
+      if (remaining <= 0) break;
+      const h = (e.end - e.start) / 3600000;
+      const take = Math.min(h, remaining);
+      paid += take; remaining -= take;
+    }
+  }
+  return paid;
+}
+// Total de horas para un cliente
+function hoursFor(clientId, onlyUnpaid){
+  const total = db.entries.filter(e => e.clientId === clientId).reduce((s,e) => s + (e.end - e.start), 0) / 3600000;
+  if (!onlyUnpaid) return total;
+  return Math.max(0, total - paidHoursFor(clientId));
+}
+function addPayment(){
+  ask({ title:'Nuevo pago', text:'', ok:'Crear', cancel:'Cancelar' }).then(async ok => {
+    if (!ok) return;
+    const clientId = await uiPrompt('Cliente', { placeholder:'Selecciona cliente' }); // simplificado por ahora
+  });
+}
+function removePayment(id){
+  const p = db.payments.find(x => x.id === id); if (!p) return;
+  uiConfirm('Borrar pago', `${p.amount} € del ${new Date(p.date).toLocaleDateString('es-ES')} para ${client(p.clientId)?.name || '?'}`, { ok:'Borrar', cancel:'Cancelar', danger:true }).then(yes => {
+    if (!yes) return;
+    db.payments = db.payments.filter(x => x.id !== id);
+    save(); renderAll();
+  });
+}
 
 /* ---------- Firebase ---------- */
 const configured = firebaseConfig && firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith('PEGA');
@@ -1144,8 +1208,28 @@ function renderReports(){
       });
     });
   });
+  let payHtml = '';
+  if (db.payments.length){
+    const [from, to] = rangeBounds($('#rRange').value, $('#rFrom').value, $('#rTo').value, $('#rClient').value);
+    const payList = db.payments.filter(p => {
+      const pDate = new Date(p.date).getTime();
+      const inRange = pDate >= from && pDate < to;
+      const inClient = !$('#rClient').value || p.clientId === $('#rClient').value;
+      return inRange && inClient;
+    }).sort((a, b) => new Date(a.date) - new Date(b.date));
+    if (payList.length){
+      let payTotal = 0;
+      payHtml = '<div style="margin-top:28px"><h3 style="font-size:15px;margin:0 0 10px;font-weight:600">Pagos registrados</h3><table><thead><tr><th>Cliente</th><th class="r">Importe</th><th>Fecha</th><th>Nota</th></tr></thead><tbody>';
+      payList.forEach(p => {
+        const c = client(p.clientId);
+        payTotal += p.amount;
+        payHtml += `<tr><td>${c?.name || '(eliminado)'}</td><td class="r num">${fmtMoney(p.amount)}</td><td>${new Date(p.date).toLocaleDateString('es-ES')}</td><td class="muted small">${esc(p.note || '')}</td></tr>`;
+      });
+      payHtml += `</tbody><tfoot><tr><td><b>Total pagado</b></td><td class="r"><b>${fmtMoney(payTotal)}</b></td><td colspan="2"></td></tr></tfoot></table></div>`;
+    }
+  }
   $('#rTable').innerHTML = `<table><thead><tr><th>Cliente › Proyecto › Tarea</th><th class="r">Tiempo</th><th class="r">Horas</th><th class="r">Importe</th></tr></thead>
-    <tbody>${html}</tbody><tfoot><tr class="l1"><td><b>Total</b></td><td class="r"><b>${fmtDur(totMs)}</b></td><td class="r"><b>${fmtHours(totMs)}</b></td><td class="r"><b>${totEur?fmtMoney(totEur):'—'}</b></td></tr></tfoot></table>`;
+    <tbody>${html}</tbody><tfoot><tr class="l1"><td><b>Total</b></td><td class="r"><b>${fmtDur(totMs)}</b></td><td class="r"><b>${fmtHours(totMs)}</b></td><td class="r"><b>${totEur?fmtMoney(totEur):'—'}</b></td></tr></tfoot></table>${payHtml}`;
 }
 function toCsv(list){
   const q = v => `"${String(v??'').replace(/"/g,'""')}"`;
@@ -1222,13 +1306,20 @@ function renderClients(){
     if (e.projectId) tot.p[e.projectId]=(tot.p[e.projectId]||0)+ms;
     if (e.taskId) tot.t[e.taskId]=(tot.t[e.taskId]||0)+ms; });
   const hrs = (k, id) => !list ? '…' : tot[k][id] ? fmtDur(tot[k][id]) : '—';
+  const payInfo = (id) => {
+    if (!db.payments.length) return '';
+    const paid = paidHoursFor(id);
+    const unpaid = hoursFor(id, true);
+    if (!paid && !unpaid) return '';
+    return `<span class="muted small">${paid>0 ? paid.toFixed(1)+'h pagadas' : ''}${paid>0&&unpaid>0?' · ':''}${unpaid>0 ? unpaid.toFixed(1)+'h por pagar' : ''}</span>`;
+  };
   const row = (lvl, key, kind, x, nameHtml, kids) => `
     <div class="grp lvl${lvl}${key && isOpen(key) ? ' open' : ''}${x.archived?' archived':''}">
       <div class="gh"${key?` data-tog="${key}"`:''}>${key ? ICON.chev : '<span class="nochev"></span>'}
         ${kind==='clients' ? `<button class="cdot" data-colorpick="${x.id}" style="background:${esc(x.color)}" title="Cambiar color"></button>` : ''}
         <div class="gn"><span class="n">${nameHtml}</span><span class="gs num">${hrs(kind[0], x.id)}</span></div>
         ${itemControls(kind, x)}
-      </div>${key ? `<div class="gb">${kids}</div>` : ''}
+      </div>${kind==='clients' && db.payments.length ? `<div style="padding:0 0 8px 40px;font-size:12px">${payInfo(x.id)}</div>` : ''}${key ? `<div class="gb">${kids}</div>` : ''}
     </div>`;
   $('#cTree').innerHTML = vis(db.clients).map(c => row(1, `k:c:${c.id}`, 'clients', c, esc(c.name),
     vis(db.projects.filter(p=>p.clientId===c.id)).map(p => row(2, `k:p:${p.id}`, 'projects', p, esc(p.name),
@@ -1314,6 +1405,47 @@ $('#wipe').onclick = async () => {
   if ((w||'').trim().toUpperCase() !== 'BORRAR') return;
   try{ await replaceAll(emptyDb()); toast('Datos borrados'); } catch(e){ fail(e); }
 };
+let editingPayment = null;
+function renderPayments(){
+  const clients = db.clients.length ? '' : '<div class="empty">Crea clientes primero para registrar pagos.</div>';
+  enhance($('#pClient'));
+  $('#pClient').innerHTML = '<option value="">Selecciona cliente…</option>' + db.clients.map(c => `<option value="${esc(c.id)}">${esc(c.name)}</option>`).join('');
+  syncPicker($('#pClient'));
+  const today = dateStr(Date.now());
+  if ($('#pDate').value === '' && !editingPayment) $('#pDate').value = today;
+
+  // Resumen
+  let sumHtml = '';
+  if (db.payments.length){
+    let totPaid = 0, totHours = 0, totPending = 0;
+    db.clients.forEach(c => {
+      const h = hoursFor(c.id);
+      const p = paidHoursFor(c.id);
+      totHours += h; totPaid += p; totPending += Math.max(0, h - p);
+    });
+    const payTotal = db.payments.reduce((s, p) => s + p.amount, 0);
+    sumHtml = `<h2>Resumen</h2><div class="row" style="gap:20px"><span><b>${totHours.toFixed(1)}h</b> en total · <b>${totPaid.toFixed(1)}h</b> pagadas · <b class="muted">${totPending.toFixed(1)}h</b> pendientes</span><span><b>${fmtMoney(payTotal)}</b> cobrado</span></div>`;
+  }
+  $('#pSummary').innerHTML = sumHtml;
+
+  let html = db.payments.length ? '' : '<tr><td colspan="6" class="empty">Sin pagos registrados aún.</td></tr>';
+  db.payments.forEach(p => {
+    const c = client(p.clientId);
+    const rate = rateFor(p.clientId, null, null);
+    const hours = rate ? (p.amount / rate).toFixed(2) : '—';
+    const hoursDisplay = hours === '—' ? '—' : parseFloat(hours).toFixed(1) + 'h';
+    html += `<tr data-editpay="${p.id}" style="cursor:pointer" title="Click para editar">
+      <td>${c?.name || '(eliminado)'}</td>
+      <td class="r num">${fmtMoney(p.amount)}</td>
+      <td>${new Date(p.date).toLocaleDateString('es-ES')}</td>
+      <td class="r num">${hoursDisplay}</td>
+      <td class="muted small">${esc(p.note || '')}</td>
+      <td><button class="ib danger" data-rmvpay="${p.id}" title="Borrar pago" onclick="event.stopPropagation()">${ICON.del}</button></td>
+    </tr>`;
+  });
+  $('#pBody').innerHTML = html;
+}
+
 function renderData(){
   $('#lastBackup').textContent = db.lastBackup ? new Date(db.lastBackup).toLocaleString('es-ES') : 'nunca';
   $('#info').innerHTML = `Versión ${APP_VERSION} · esquema de datos ${db.schema}<br>${db.clients.length} clientes · ${db.projects.length} proyectos · ${db.tasks.length} tareas · ${db.entries.length} registros cargados<br>
@@ -1328,7 +1460,46 @@ $('#tabs').onclick = ev => {
   document.body.dataset.tab = b.dataset.tab; scrollTo(0,0);
   try{ localStorage.setItem('temporizador.tab', b.dataset.tab); }catch(e){}
 };
-function renderAll(){ renderTimer(); renderEntries(); renderReports(); renderClients(); renderData(); }
+function renderAll(){ renderTimer(); renderEntries(); renderReports(); renderClients(); renderPayments(); renderData(); }
+
+/* ---------- Pagos ---------- */
+$('#pAdd').onclick = async () => {
+  const cId = $('#pClient').value;
+  const date = $('#pDate').value;
+  const amount = parseFloat($('#pAmount').value);
+  const note = $('#pNote').value.trim();
+  if (!cId?.trim()) return uiAlert('Error', 'Selecciona un cliente');
+  if (!date) return uiAlert('Error', 'Indica una fecha');
+  if (isNaN(amount) || amount === 0) return uiAlert('Error', 'El importe no puede ser 0');
+
+  if (editingPayment){
+    editingPayment.clientId = cId; editingPayment.date = date; editingPayment.amount = amount; editingPayment.note = note;
+    editingPayment = null;
+    $('#pFormTitle').textContent = 'Nuevo pago';
+    $('#pCancel').hidden = true;
+  } else {
+    db.payments.push({ id:uid(), clientId:cId, date, amount, note, createdAt:Date.now() });
+  }
+  $('#pClient').value = ''; $('#pAmount').value = ''; $('#pNote').value = ''; $('#pDate').value = dateStr(Date.now());
+  save(); renderAll(); toast('Pago ' + (editingPayment ? 'actualizado' : 'registrado'));
+};
+$('#pCancel').onclick = () => {
+  editingPayment = null;
+  $('#pClient').value = ''; $('#pAmount').value = ''; $('#pNote').value = '';
+  $('#pFormTitle').textContent = 'Nuevo pago';
+  $('#pCancel').hidden = true;
+};
+$('#pBody').addEventListener('click', ev => {
+  const del = ev.target.closest('[data-rmvpay]'); if (del){ removePayment(del.dataset.rmvpay); return; }
+  const row = ev.target.closest('[data-editpay]'); if (!row) return;
+  const p = db.payments.find(x => x.id === row.dataset.editpay); if (!p) return;
+  editingPayment = p;
+  $('#pClient').value = p.clientId; $('#pDate').value = p.date; $('#pAmount').value = p.amount; $('#pNote').value = p.note || '';
+  $('#pFormTitle').textContent = 'Editar pago';
+  $('#pCancel').hidden = false;
+  syncPicker($('#pClient'));
+  $('#pAmount').focus();
+});
 
 $('#home').onclick = ev => { ev.preventDefault(); document.querySelector('#tabs [data-tab="timer"]').click(); };
 document.querySelectorAll('select').forEach(enhance);
