@@ -724,13 +724,12 @@ function addPayment(){
     const clientId = await uiPrompt('Cliente', { placeholder:'Selecciona cliente' }); // simplificado por ahora
   });
 }
-function removePayment(id){
+async function removePayment(id){
   const p = db.payments.find(x => x.id === id); if (!p) return;
-  uiConfirm('Borrar pago', `${p.amount} € del ${new Date(p.date).toLocaleDateString('es-ES')} para ${client(p.clientId)?.name || '?'}`, { ok:'Borrar', cancel:'Cancelar', danger:true }).then(yes => {
-    if (!yes) return;
-    db.payments = db.payments.filter(x => x.id !== id);
-    save(); renderAll();
-  });
+  const yes = await uiConfirm('Borrar pago', `${p.amount} € del ${new Date(p.date).toLocaleDateString('es-ES')} para ${client(p.clientId)?.name || '?'}`, { ok:'Borrar', cancel:'Cancelar', danger:true });
+  if (!yes) return;
+  db.payments = db.payments.filter(x => x.id !== id);
+  save(); renderAll(); toast('Pago borrado');
 }
 
 /* ---------- Firebase ---------- */
@@ -1440,7 +1439,7 @@ function renderPayments(){
       <td>${new Date(p.date).toLocaleDateString('es-ES')}</td>
       <td class="r num">${hoursDisplay}</td>
       <td class="muted small">${esc(p.note || '')}</td>
-      <td><button class="ib danger" data-rmvpay="${p.id}" title="Borrar pago" onclick="event.stopPropagation()">${ICON.del}</button></td>
+      <td style="text-align:right"><button class="ib danger" data-rmvpay="${p.id}" title="Borrar pago">${ICON.del}</button></td>
     </tr>`;
   });
   $('#pBody').innerHTML = html;
@@ -1490,8 +1489,10 @@ $('#pCancel').onclick = () => {
   $('#pCancel').hidden = true;
 };
 $('#pBody').addEventListener('click', ev => {
-  const del = ev.target.closest('[data-rmvpay]'); if (del){ removePayment(del.dataset.rmvpay); return; }
-  const row = ev.target.closest('[data-editpay]'); if (!row) return;
+  const del = ev.target.closest('button[data-rmvpay]');
+  if (del){ ev.stopPropagation(); removePayment(del.dataset.rmvpay); return; }
+  const row = ev.target.closest('tr[data-editpay]');
+  if (!row) return;
   const p = db.payments.find(x => x.id === row.dataset.editpay); if (!p) return;
   editingPayment = p;
   $('#pClient').value = p.clientId; $('#pDate').value = p.date; $('#pAmount').value = p.amount; $('#pNote').value = p.note || '';
