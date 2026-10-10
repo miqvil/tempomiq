@@ -1,0 +1,34 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Cada usuario tiene su "cajón": users/{su-id-de-Google}/...
+    // Solo puede entrar en SU cajón, con una sesión de Google válida.
+    match /users/{uid}/{document=**} {
+      allow read, write: if request.auth != null
+                         && request.auth.uid == uid
+                         && request.auth.token.email_verified == true
+                         && request.auth.token.email != null;
+    }
+
+    // Validación adicional para registros de tiempo (entries)
+    match /users/{uid}/entries/{entryId} {
+      allow read, write: if request.auth != null
+                         && request.auth.uid == uid
+                         && request.auth.token.email_verified == true
+                         && request.auth.token.email != null
+                         && request.resource.data.keys().hasAll(['start', 'end', 'clientId'])
+                         && request.resource.data.start is number
+                         && request.resource.data.end is number;
+    }
+
+    // Todo lo demás está prohibido por defecto (no hace falta escribirlo).
+  }
+}
+
+// ── OPCIONAL: permitir solo a una lista de personas ──────────────────
+// Si en vez de "cualquier cuenta de Google" quieres solo unas concretas,
+// cambia la línea "&& request.auth.token.email_verified == true;" por:
+//
+//   && request.auth.token.email_verified == true
+//   && request.auth.token.email in ["persona1@gmail.com", "persona2@gmail.com"];
