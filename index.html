@@ -497,7 +497,7 @@ function download(name, text, type){
   setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
 }
 function showGate(msg, withLogin){
-  $('#gate').hidden=false; $('#gateMsg').innerHTML=msg; $('#loginBtn').hidden=!withLogin;
+  $('#gate').hidden=false; $('#gateMsg').textContent=msg; $('#loginBtn').hidden=!withLogin;
 }
 
 /* ---------- Ventanas propias (sustituyen a alert/confirm/prompt del navegador) ---------- */
