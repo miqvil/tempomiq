@@ -490,7 +490,7 @@ const fmtDay = t => new Date(t).toLocaleDateString('es-ES',{weekday:'long',day:'
 const dateStr = t => { const d=new Date(t); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; };
 const timeStr = t => { const d=new Date(t); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
 const startOfDay = t => { const d=new Date(t); d.setHours(0,0,0,0); return d.getTime(); };
-const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36)+Math.random().toString(36).slice(2));
+const uid = () => crypto.randomUUID();
 function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('show'),2500); }
 function download(name, text, type){
   const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type})); a.download=name; a.click();
@@ -793,6 +793,7 @@ if (!configured){
   onAuthStateChanged(auth, u => {
     unsubs.forEach(f=>f()); unsubs=[]; db=emptyDb(); user=u;
     if (!u){ metaRef=entriesRef=null; showGate('Entra con tu cuenta de Google para ver tus tiempos.', true); return; }
+    if (!u.emailVerified){ signOut(auth); showGate('Tu email no está verificado. Verifica tu cuenta de Google.', true); return; }
     const nm = (u.displayName || u.email || '?').trim();
     const initials = nm.split(/[\s@.]+/).filter(Boolean).slice(0,2).map(w=>w[0].toUpperCase()).join('');
     const av = $('#logoutBtn'); av.textContent = initials;
@@ -938,7 +939,7 @@ function renderToday(){
   const list = [...filterEntries('today')];
   if (r) list.push({ ...r, id:'__running', running:true, end:null });
   $('#todayTotal').textContent = fmtDur(sumMs(list));
-  if (!list.length){ $('#todayList').innerHTML = '<div class="empty">Aún no hay registros hoy.</div>'; return; }
+  if (!list.length){ $('#todayList').textContent = 'Aún no hay registros hoy.'; return; }
   const tree = groupTree(list);
   const onPath = (k, v) => r && r[k] === v;
   const leafs = items => items.sort((a,b) => b.start - a.start).map(e => entryRow(e, 'leaf')).join('');
@@ -1064,7 +1065,7 @@ function renderEntries(){
   const list = filterEntries($('#eRange').value, $('#eFrom').value, $('#eTo').value, cSel.value);
   if (!list){ $('#eTotal').textContent='…'; $('#eList').innerHTML=historyNote(); return; }
   $('#eTotal').textContent = fmtDur(list.reduce((s,e)=>s+(e.end-e.start),0));
-  if (!list.length){ $('#eList').innerHTML='<div class="empty">No hay registros en este periodo.</div>'; return; }
+  if (!list.length){ $('#eList').textContent='No hay registros en este periodo.'; return; }
   const days = {};
   list.forEach(e => (days[startOfDay(e.start)] ??= []).push(e));
   $('#eList').innerHTML = Object.keys(days).sort((a,b)=>b-a).map(d => {
@@ -1120,7 +1121,7 @@ function renderReports(){
   const cSel=$('#rClient'); fillSelect(cSel, [...[...db.clients].sort(byName), {id:'__none', name:'⚠ Sin asignar'}], 'Todos', cSel.value);
   const list = filterEntries($('#rRange').value, $('#rFrom').value, $('#rTo').value, cSel.value);
   if (!list){ $('#rTable').innerHTML=historyNote(); return; }
-  if (!list.length){ $('#rTable').innerHTML='<div class="empty">No hay registros en este periodo.</div>'; return; }
+  if (!list.length){ $('#rTable').textContent='No hay registros en este periodo.'; return; }
   const tree={};
   list.forEach(e=>{
     const ms=e.end-e.start, eur=amountOf(e);
@@ -1213,7 +1214,7 @@ function renderClients(){
   const show=$('#showArchived').checked;
   const vis = l => l.filter(x=>show||!x.archived).sort(byName);
   document.querySelectorAll('#cPeriod [data-p]').forEach(b => b.classList.toggle('on', b.dataset.p===cPeriod));
-  if (!db.clients.length){ $('#cTree').innerHTML='<div class="empty">Aún no tienes clientes. Crea el primero arriba.</div>'; return; }
+  if (!db.clients.length){ $('#cTree').textContent='Aún no tienes clientes. Crea el primero arriba.'; return; }
   // Horas del periodo elegido, por cliente / proyecto / tarea
   const list = filterEntries(cPeriod);
   const tot = { c:{}, p:{}, t:{} };
